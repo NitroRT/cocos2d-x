@@ -64,9 +64,9 @@ ANDROID_SDK_ROOT = 'ANDROID_SDK_ROOT'
 
 def _check_python_version():
     major_ver = sys.version_info[0]
-    if major_ver > 2:
-        print ("The python version is %d.%d. But python 2.x is required. (Version 2.7 is well tested)\n"
-               "Download it here: https://www.python.org/" % (major_ver, sys.version_info[1]))
+    if major_ver < 3:
+        print(("The python version is %d.%d. But python 3.x is required. (Version 3.11 is well tested)\n"
+               "Download it here: https://www.python.org/" % (major_ver, sys.version_info[1])))
         return False
 
     return True
@@ -145,20 +145,20 @@ class SetEnvVar(object):
     # modify registry table to add an environment variable on windows
     def _set_environment_variable_win32(self, key, value):
         ret = False
-        import _winreg
+        import winreg
         try:
             env = None
-            env = _winreg.OpenKeyEx(_winreg.HKEY_CURRENT_USER,
+            env = winreg.OpenKeyEx(winreg.HKEY_CURRENT_USER,
                                     'Environment',
                                     0,
-                                    _winreg.KEY_SET_VALUE | _winreg.KEY_READ)
-            _winreg.SetValueEx(env, key, 0, _winreg.REG_SZ, value)
-            _winreg.FlushKey(env)
-            _winreg.CloseKey(env)
+                                    winreg.KEY_SET_VALUE | winreg.KEY_READ)
+            winreg.SetValueEx(env, key, 0, winreg.REG_SZ, value)
+            winreg.FlushKey(env)
+            winreg.CloseKey(env)
             ret = True
         except Exception:
             if env:
-                _winreg.CloseKey(env)
+                winreg.CloseKey(env)
             ret = False
 
         return ret
@@ -243,19 +243,19 @@ class SetEnvVar(object):
                         if ret is not None:
                             break
             else:
-                import _winreg
+                import winreg
                 try:
                     env = None
-                    env = _winreg.OpenKeyEx(_winreg.HKEY_CURRENT_USER,
+                    env = winreg.OpenKeyEx(winreg.HKEY_CURRENT_USER,
                                             'Environment',
                                             0,
-                                            _winreg.KEY_READ)
+                                            winreg.KEY_READ)
 
-                    ret = _winreg.QueryValueEx(env, var)[0]
-                    _winreg.CloseKey(env)
+                    ret = winreg.QueryValueEx(env, var)[0]
+                    winreg.CloseKey(env)
                 except Exception:
                     if env:
-                        _winreg.CloseKey(env)
+                        winreg.CloseKey(env)
                     ret = None
 
         if ret is None:
@@ -266,7 +266,7 @@ class SetEnvVar(object):
         return ret
 
     def _get_input_value(self, var_name):
-        ret = raw_input(
+        ret = input(
             '  ->Please enter the path of %s (or press Enter to skip):' % var_name)
         ret.rstrip(" \t")
         return ret
@@ -377,15 +377,15 @@ class SetEnvVar(object):
             return False
 
     def remove_dir_from_win_path(self, remove_dir):
-        import _winreg
+        import winreg
         try:
             env = None
             path = None
-            env = _winreg.OpenKeyEx(_winreg.HKEY_CURRENT_USER,
+            env = winreg.OpenKeyEx(winreg.HKEY_CURRENT_USER,
                                     'Environment',
                                     0,
-                                    _winreg.KEY_SET_VALUE | _winreg.KEY_READ)
-            path = _winreg.QueryValueEx(env, 'Path')[0]
+                                    winreg.KEY_SET_VALUE | winreg.KEY_READ)
+            path = winreg.QueryValueEx(env, 'Path')[0]
 
             path_lower = path.lower()
             remove_dir = remove_dir.replace('/', '\\')
@@ -396,9 +396,9 @@ class SetEnvVar(object):
                 need_remove = path[start_pos:(start_pos + length)]
                 path = path.replace(need_remove, '')
                 path = path.replace(';;', ';')
-                _winreg.SetValueEx(env, 'Path', 0, _winreg.REG_SZ, path)
-                _winreg.FlushKey(env)
-            _winreg.CloseKey(env)
+                winreg.SetValueEx(env, 'Path', 0, winreg.REG_SZ, path)
+                winreg.FlushKey(env)
+            winreg.CloseKey(env)
 
             print('  ->Remove directory \"%s\" from PATH!\n' % remove_dir)
         except Exception:
@@ -407,39 +407,39 @@ class SetEnvVar(object):
 
     def set_windows_path(self, add_dir):
         ret = False
-        import _winreg
+        import winreg
         try:
             env = None
             path = None
-            env = _winreg.OpenKeyEx(_winreg.HKEY_CURRENT_USER,
+            env = winreg.OpenKeyEx(winreg.HKEY_CURRENT_USER,
                                     'Environment',
                                     0,
-                                    _winreg.KEY_SET_VALUE | _winreg.KEY_READ)
-            path = _winreg.QueryValueEx(env, 'Path')[0]
+                                    winreg.KEY_SET_VALUE | winreg.KEY_READ)
+            path = winreg.QueryValueEx(env, 'Path')[0]
 
             # add variable if can't find it in PATH
             path_lower = path.lower()
             add_dir_lower = add_dir.lower()
             if (path_lower.find(add_dir_lower) == -1):
                 path = add_dir + ';' + path
-                _winreg.SetValueEx(env, 'Path', 0, _winreg.REG_SZ, path)
-                _winreg.FlushKey(env)
+                winreg.SetValueEx(env, 'Path', 0, winreg.REG_SZ, path)
+                winreg.FlushKey(env)
 
-            _winreg.CloseKey(env)
+            winreg.CloseKey(env)
             ret = True
         except Exception:
             if not path:
                 path = add_dir
-                _winreg.SetValueEx(env, 'Path', 0, _winreg.REG_SZ, path)
-                _winreg.FlushKey(env)
+                winreg.SetValueEx(env, 'Path', 0, winreg.REG_SZ, path)
+                winreg.FlushKey(env)
                 ret = True
             else:
-                _winreg.SetValueEx(env, 'Path', 0, _winreg.REG_SZ, path)
-                _winreg.FlushKey(env)
+                winreg.SetValueEx(env, 'Path', 0, winreg.REG_SZ, path)
+                winreg.FlushKey(env)
                 ret = False
 
             if env:
-                _winreg.CloseKey(env)
+                winreg.CloseKey(env)
 
         if ret:
             print("  ->Add directory \"%s\" into PATH succeed!\n" % add_dir)
@@ -584,8 +584,8 @@ class SetEnvVar(object):
         ret = None
         print("  ->Search for command " + cmd + " in system...")
         if not self._isWindows():
-            import commands
-            state, result = commands.getstatusoutput("which " + cmd)
+            import subprocess
+            state, result = subprocess.getstatusoutput("which " + cmd)
             if state == 0:
                 ret = os.path.realpath(result)
                 ret = os.path.dirname(ret)
@@ -716,4 +716,4 @@ if __name__ == '__main__':
         result = ctypes.c_long()
         SendMessageTimeoutW = ctypes.windll.user32.SendMessageTimeoutW
         SendMessageTimeoutW(HWND_BROADCAST, WM_SETTINGCHANGE, 0,
-                            u'Environment', SMTO_ABORTIFHUNG, 5000, ctypes.byref(result))
+                            'Environment', SMTO_ABORTIFHUNG, 5000, ctypes.byref(result))
