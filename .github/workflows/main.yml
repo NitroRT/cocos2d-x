@@ -51,7 +51,7 @@ jobs:
         with:
             submodules: recursive
       - run: python download-deps.py --r no
-      - run: cmake -B b -S . -G "Visual Studio 17 2022" -A Win32
+      - run: cmake -B b -S . -G "Visual Studio 17 2022" -A x64
       - run: cmake --build b
 
   macos-10_15:
