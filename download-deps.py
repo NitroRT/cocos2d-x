@@ -42,14 +42,14 @@ import zipfile
 import shutil
 import sys
 import traceback
-import distutils
+#import distutils
 import json
 
 from optparse import OptionParser
 from time import time
 from time import sleep
 from sys import stdout
-from distutils.dir_util import copy_tree, remove_tree
+#from distutils.dir_util import copy_tree, remove_tree
 
 
 def delete_folder_except(folder_path, excepts):
@@ -341,8 +341,9 @@ class CocosZipInstaller(object):
 
             self.clean_external_folder(folder_for_extracting)
             print("==> Copying files...")
-            distutils.dir_util.copy_tree(
-                self._extracted_folder_name, folder_for_extracting)
+            #distutils.dir_util.copy_tree(
+            #    self._extracted_folder_name, folder_for_extracting)
+            shutil.copytree( self._extracted_folder_name, folder_for_extracting, dirs_exist_ok=True )
             if self._move_dirs is not None:
                 for srcDir in self._move_dirs.keys():
                     distDir = os.path.join(os.path.join(
