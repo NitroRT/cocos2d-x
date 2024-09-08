@@ -13,6 +13,7 @@ on:
 
 jobs:
   ubuntu-20_04:
+    name: Ubuntu24
     runs-on: ubuntu-20.04
     steps:
       - uses: actions/checkout@v2
@@ -24,6 +25,7 @@ jobs:
       - run: cmake --build b
 
   windows-2022:
+    name: Win64
     runs-on: windows-2022
     steps:
       - uses: actions/checkout@v2
@@ -34,6 +36,7 @@ jobs:
       - run: cmake --build b
 
   macos-14:
+    name: MacOS
     runs-on: macos-11
     steps:
       - uses: actions/checkout@v2
@@ -44,6 +47,7 @@ jobs:
       - run: cmake --build b 
 
   macos-14_ios:
+    name: iOS
     runs-on: macos-14
     steps:
       - uses: actions/checkout@v2
