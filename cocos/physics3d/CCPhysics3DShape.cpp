@@ -192,7 +192,7 @@ bool Physics3DShape::initHeightfield( int heightStickWidth,int heightStickLength
 bool Physics3DShape::initCompoundShape( const std::vector<std::pair<Physics3DShape *, Mat4>> &shapes )
 {
     _shapeType = ShapeType::COMPOUND;
-    auto compound = new btCompoundShape;
+    auto compound = new btCompoundShape();
     for (auto iter : shapes){
         compound->addChildShape(convertMat4TobtTransform(iter.second), iter.first->getbtShape());
         CC_SAFE_RETAIN(iter.first);
