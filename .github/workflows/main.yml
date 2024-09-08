@@ -37,7 +37,7 @@ jobs:
 
   macos-14:
     name: MacOS
-    runs-on: macos-11
+    runs-on: macos-latest
     steps:
       - uses: actions/checkout@v2
         with:
@@ -48,7 +48,7 @@ jobs:
 
   macos-14_ios:
     name: iOS
-    runs-on: macos-14
+    runs-on: macos-latest
     steps:
       - uses: actions/checkout@v2
         with:
