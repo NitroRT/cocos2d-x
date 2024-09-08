@@ -4,9 +4,10 @@
 cocos2d-x
 =========
 
-|Win32|Others|
+|Win64|Others|
 | ----|------|
-[![Build status](https://ci.appveyor.com/api/projects/status/nlgirox464j6ldg5/branch/v4?svg=true)](https://ci.appveyor.com/project/minggo/cocos2d-x/branch/v4)|[![Build Status](https://travis-ci.org/cocos2d/cocos2d-x.svg?branch=v4)](https://travis-ci.org/cocos2d/cocos2d-x)
+[![CI](https://github.com/NitroRT/cocos2d-x/actions/workflows/main.yml/badge.svg?branch=v4)](https://github.com/NitroRT/cocos2d-x/actions/workflows/main.yml)|[![Build Status](https://travis-ci.org/cocos2d/cocos2d-x.svg?branch=v4)](https://travis-ci.org/cocos2d/cocos2d-x)
+
 
 
 [cocos2d-x][1] is a multi-platform framework for building 2d games, interactive books, demos and other graphical applications.
