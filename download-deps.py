@@ -44,6 +44,7 @@ import sys
 import traceback
 #import distutils
 import json
+import ssl
 
 from optparse import OptionParser
 from time import time
@@ -132,7 +133,8 @@ class CocosZipInstaller(object):
         else:
             import urllib.request as urllib
         try:
-            u = urllib.urlopen(self._url)
+            context = ssl._create_unverified_context()
+            u = urllib.urlopen(self._url, context=context)
         except Exception as e:
             if e.code == 404:
                 print("==> Error: Could not find the file from url: '%s'" %
