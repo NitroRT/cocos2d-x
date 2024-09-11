@@ -395,6 +395,9 @@ else()
 endif()
 
 target_link_libraries(${APP_NAME} cocos2d)
+if(APPLE)
+target_link_libraries(${APP_NAME} "-framework CoreFoundation -framework SystemConfiguration")
+endif()
 target_include_directories(${APP_NAME}
         PRIVATE Classes
 )

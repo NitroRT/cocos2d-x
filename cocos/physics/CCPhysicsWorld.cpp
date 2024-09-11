@@ -41,6 +41,14 @@
 #include "base/CCEventDispatcher.h"
 #include "base/CCEventCustom.h"
 
+
+#if CC_TARGET_PLATFORM != CC_PLATFORM_WIN32
+extern "C"
+{
+#include "chipmunk/cpHastySpace.h"
+}
+#endif
+
 NS_CC_BEGIN
 const float PHYSICS_INFINITY = FLT_MAX;
 extern const char* PHYSICSCONTACT_EVENT_NAME;

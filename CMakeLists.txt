@@ -33,7 +33,10 @@ project(Cocos2d-x)
 # set default minimum deployment target
 if(XCODE)
     if(NOT DEFINED CMAKE_XCODE_ATTRIBUTE_IPHONEOS_DEPLOYMENT_TARGET)
-        SET (CMAKE_XCODE_ATTRIBUTE_IPHONEOS_DEPLOYMENT_TARGET 11.0)
+        SET (CMAKE_XCODE_ATTRIBUTE_IPHONEOS_DEPLOYMENT_TARGET 12.0)
+    endif()
+    if(NOT DEFINED CMAKE_OSX_DEPLOYMENT_TARGET)
+        SET (CMAKE_OSX_DEPLOYMENT_TARGET 10.14)
     endif()
 endif()
 
@@ -47,7 +50,9 @@ include(PreventInSourceBuilds)
 # works before build libcocos2d
 include(CocosBuildSet)
 
+if(NOT APPLE)
 set(BUILD_LUA_LIBS ON) 
+endif()
 
 add_subdirectory(${COCOS2DX_ROOT_PATH}/cocos ${ENGINE_BINARY_PATH}/cocos/core)
 
