@@ -4,9 +4,9 @@
 cocos2d-x
 =========
 
-|Win64|Mac|
+|Win64|MacOS|
 | ----|------|
-[![Win64](https://github.com/NitroRT/cocos2d-x/actions/workflows/windows.yml/badge.svg)](https://github.com/NitroRT/cocos2d-x/actions/workflows/windows.yml)|[![Build Status](https://travis-ci.org/cocos2d/cocos2d-x.svg?branch=v4)](https://travis-ci.org/cocos2d/cocos2d-x)
+[![Win64](https://github.com/NitroRT/cocos2d-x/actions/workflows/windows.yml/badge.svg)](https://github.com/NitroRT/cocos2d-x/actions/workflows/windows.yml)|[![MacOS](https://github.com/NitroRT/cocos2d-x/actions/workflows/mac.yml/badge.svg)](https://github.com/NitroRT/cocos2d-x/actions/workflows/mac.yml)
 
 
 
