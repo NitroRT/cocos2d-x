@@ -1,6 +1,6 @@
 # This is a basic workflow to help you get started with Actions
 
-name: Win64
+name: iOS
 
 on:
   push:
@@ -12,13 +12,14 @@ on:
   workflow_dispatch:
 
 jobs:
-  windows-2022:
-    name: Windows64
-    runs-on: windows-2022
+  macos-14_ios:
+    name: iOS
+    runs-on: macos-14
     steps:
       - uses: actions/checkout@v2
         with:
             submodules: recursive
       - run: python download-deps.py --r no
-      - run: cmake -B b -S . -G "Visual Studio 17 2022" -A x64
-      - run: cmake --build b
+      - run: cmake -B b -S . -GXcode -DCMAKE_SYSTEM_NAME=iOS -DCMAKE_OSX_SYSROOT=iphonesimulator
+      - run: cmake --build b --config Release --target cpp-tests -- -quiet -destination "platform=iOS Simulator,name=iPhone Retina (4-inch)"
+
