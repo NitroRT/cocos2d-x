@@ -89,20 +89,20 @@ Main features
 Build Requirements
 ------------------
 
-* Mac OS X 10.7+, Xcode 8+
+* Mac OS X 14.2+, Xcode 15+
 * or Ubuntu 14.04+, CMake 3.1+
-* or Windows 7+, VS 2015
-* Python 2.7.5+(NOT Python 3)
+* or Windows 10+, VS 2022
+* Python 3.11+
 * NDK r16+ is required to build Android games
 * Android Studio 3.0.0+ to build Android games(tested with 3.0.0)
 * JRE or JDK 1.6+ is required for web publishing
 
 Runtime Requirements
 --------------------
-  * iOS 8.0+ for iPhone / iPad games
+  * iOS 13.0+ for iPhone / iPad games
   * Android 3.0.0+ for Android
-  * OS X v10.9+ for Mac games
-  * Windows 7+ for Win games
+  * OS X v14.2+ for Mac games
+  * Windows 10+ for Win games
 
 Environment Setup
 --------------------
