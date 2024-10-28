@@ -128,6 +128,17 @@ void ProgramGL::compileProgram()
     if (GL_FALSE == status)
     {
         printf("cocos2d: ERROR: %s: failed to link program ", __FUNCTION__);
+#ifdef COCOS2D_DEBUG
+        GLint logSize = 0;
+        glGetProgramiv( _program, GL_INFO_LOG_LENGTH, &logSize );
+
+        if ( logSize )
+        {
+            std::vector<GLchar> errorLog( logSize );
+            glGetProgramInfoLog( _program, logSize, &logSize, &errorLog[0] );
+            cocos2d::log( "cocos2d: Linking shader: %s", (char*)errorLog.data() );
+        }
+#endif
         glDeleteProgram(_program);
         _program = 0;
     }

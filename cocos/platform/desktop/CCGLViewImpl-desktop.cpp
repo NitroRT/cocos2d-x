@@ -1025,13 +1025,13 @@ bool GLViewImpl::initGlew()
         log("Not totally ready :(");
     }
 
-    if (glewIsSupported("GL_VERSION_2_0"))
+    if (glewIsSupported("GL_VERSION_4_6"))
     {
-        log("Ready for OpenGL 2.0");
+        log("Ready for OpenGL 4.6");
     }
     else
     {
-        log("OpenGL 2.0 not supported");
+        log("OpenGL 4.6 not supported");
     }
 
 
