@@ -16,10 +16,6 @@ jobs:
     name: iOS
     runs-on: macos-14
     steps:
-      - name: Install CMake
-        uses: ssrobins/install-cmake@v1
-        with:
-          version: 3.28.3
       - uses: actions/checkout@v2
         with:
             submodules: recursive
