@@ -54,7 +54,8 @@ static AppDelegate s_sharedApplication;
 
     // Use RootViewController to manage CCEAGLView
     _viewController = [[RootViewController alloc]init];
-    _viewController.wantsFullScreenLayout = YES;
+    _viewController.edgesForExtendedLayout = UIRectEdgeTop | UIRectEdgeBottom;
+    _viewController.extendedLayoutIncludesOpaqueBars = YES;
     
 
     // Set RootViewController to window
@@ -70,8 +71,6 @@ static AppDelegate s_sharedApplication;
     }
 
     [window makeKeyAndVisible];
-
-    [[UIApplication sharedApplication] setStatusBarHidden:true];
     
     //Launching the app with the arguments -NSAllowsDefaultLineBreakStrategy NO to force back to the old behavior.
     if ( [[UIDevice currentDevice].systemVersion floatValue] >= 13.0f)
