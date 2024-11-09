@@ -422,8 +422,8 @@ public:
      */
     void renderScene(Scene* scene, Renderer* renderer);
     
-protected:
     void updateDesignResolutionSize();
+protected:
     
     void handleTouchesOfEndOrCancel(EventTouch::EventCode eventCode, int num, intptr_t ids[], float xs[], float ys[]);
 
