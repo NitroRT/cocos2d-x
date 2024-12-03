@@ -46,7 +46,7 @@ if(NOT DEFINED BUILD_ENGINE_DONE) # to test HelloCpp into root project
     add_subdirectory(${COCOS2DX_ROOT_PATH}/cocos ${ENGINE_BINARY_PATH}/cocos/core)
 endif()
 
-set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED True)
 
 if(MSVC)
