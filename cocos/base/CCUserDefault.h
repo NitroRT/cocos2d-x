@@ -80,6 +80,15 @@ public:
     int     getIntegerForKey(const char* key);
     
     /**
+    * Get unsigned integer value by key, if the key doesn't exist, will return 0.
+    * You can set the default value, or it is 0.
+    * @param key The key to get value.
+    * @return Integer value of the key.
+    * @js NA
+    */
+    unsigned int getUIntegerForKey( const char* pKey, unsigned int defaultValue );
+
+    /**
      * Get bool value by key, if the key doesn't exist, will return passed default value.
      * @param key The key to get value.
      * @param defaultValue The default value to return if the key doesn't exist.
@@ -172,6 +181,13 @@ public:
      * @js NA
      */
     virtual void setIntegerForKey(const char* key, int value);
+    /**
+    * Set unsigned integer value by key.
+    * @param key The key to set.
+    * @param value A integer value to set to the key.
+    * @js NA
+    */
+    void setUIntegerForKey( const char* pKey, unsigned int value );
     /**
      * Set float value by key.
      * @param key The key to set.
