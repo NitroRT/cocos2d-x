@@ -234,40 +234,6 @@ int UserDefault::getIntegerForKey(const char* pKey, int defaultValue)
     return ret;
 }
 
-unsigned int UserDefault::getUIntegerForKey( const char* pKey, unsigned int defaultValue )
-{
-    const char* value = nullptr;
-    tinyxml2::XMLElement* rootNode;
-    tinyxml2::XMLDocument* doc;
-    tinyxml2::XMLElement* node;
-    node = getXMLNodeForKey( pKey, &rootNode, &doc );
-    // find the node
-    if ( node && node->FirstChild() )
-    {
-        value = (const char*)( node->FirstChild()->Value() );
-    }
-
-    unsigned int ret = defaultValue;
-
-    if ( value )
-    {
-        unsigned int convertVal;
-        auto result = std::from_chars( value, value + std::strlen( value ), convertVal );
-        if ( result.ec == std::errc() )
-        {
-            ret = convertVal;
-        }
-    }
-
-    if ( doc )
-    {
-        delete doc;
-    }
-
-
-    return ret;
-}
-
 float UserDefault::getFloatForKey(const char* pKey)
 {
     return getFloatForKey(pKey, 0.0f);
@@ -408,22 +374,6 @@ void UserDefault::setIntegerForKey(const char* pKey, int value)
     sprintf(tmp, "%d", value);
 
     setValueForKey(pKey, tmp);
-}
-
-void UserDefault::setUIntegerForKey( const char* pKey, unsigned int value )
-{
-    // check key
-    if ( !pKey )
-    {
-        return;
-    }
-
-    // format the value
-    char tmp[50];
-    memset( tmp, 0, 50 );
-    sprintf( tmp, "%u", value );
-
-    setValueForKey( pKey, tmp );
 }
 
 void UserDefault::setFloatForKey(const char* pKey, float value)
