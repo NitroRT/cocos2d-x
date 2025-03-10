@@ -436,7 +436,7 @@ namespace ui {
             pThis->_WindowProc(hwnd, uMsg, wParam, lParam);
         }
 
-        return ::CallWindowProcW(s_prevCocosWndProc, hwnd, uMsg, wParam, lParam);
+        return ::CallWindowProcW( pThis->_prevWndProc, hwnd, uMsg, wParam, lParam );
     }
 }
 

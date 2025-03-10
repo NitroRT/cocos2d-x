@@ -111,7 +111,15 @@ bool EditBox::initWithSizeAndBackgroundSprite(const Size& size, Scale9Sprite* no
         _editBoxImpl->initWithSize(size);
         _editBoxImpl->setInputMode(EditBox::InputMode::ANY);
 
-        loadTextureNormal(normalSprite->getResourceName(), normalSprite->getResourceType() == 0 ? TextureResType::LOCAL : TextureResType::PLIST);
+        if ( normalSprite->getResourceName().empty() )
+        {
+            loadTextureNormal( normalSprite->getSpriteFrame() );
+        }
+        else
+        {
+            loadTextureNormal( normalSprite->getResourceName(), normalSprite->getResourceType() == 0 ? TextureResType::LOCAL : TextureResType::PLIST );
+        }
+
         if (pressedSprite != nullptr)
         {
             loadTexturePressed(pressedSprite->getResourceName(), pressedSprite->getResourceType() == 0 ? TextureResType::LOCAL : TextureResType::PLIST);
