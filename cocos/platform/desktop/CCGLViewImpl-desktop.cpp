@@ -294,7 +294,7 @@ bool GLViewImpl::initWithRect(const std::string& viewName, Rect rect, float fram
     glfwWindowHint(GLFW_ALPHA_BITS,_glContextAttrs.alphaBits);
     glfwWindowHint(GLFW_DEPTH_BITS,_glContextAttrs.depthBits);
     glfwWindowHint(GLFW_STENCIL_BITS,_glContextAttrs.stencilBits);
-    glfwWindowHint( GLFW_SCALE_TO_MONITOR, GLFW_TRUE );
+    //glfwWindowHint( GLFW_SCALE_TO_MONITOR, GLFW_TRUE );
     glfwWindowHint(GLFW_SAMPLES, _glContextAttrs.multisamplingCount);
     
 #if (CC_TARGET_PLATFORM == CC_PLATFORM_MAC)
