@@ -125,7 +125,7 @@ namespace ui {
                 s_hInstance,
                 this);        // pointer not needed 
 
-            SetWindowLongPtrW(_hwndEdit, GWLP_WNDPROC, (LONG_PTR)this);
+            SetWindowLongPtrW(_hwndEdit, GWLP_USERDATA, (LONG_PTR)this);
             _prevWndProc = (WNDPROC)SetWindowLongPtrW(_hwndEdit, GWLP_WNDPROC, (LONG_PTR)WindowProc);
 
             ::SendMessageW(_hwndEdit, EM_LIMITTEXT, this->_maxLength, 0);
@@ -436,7 +436,7 @@ namespace ui {
             pThis->_WindowProc(hwnd, uMsg, wParam, lParam);
         }
 
-        return ::CallWindowProcW(pThis->_prevWndProc, hwnd, uMsg, wParam, lParam);
+        return ::CallWindowProcW(s_prevCocosWndProc, hwnd, uMsg, wParam, lParam);
     }
 }
 
