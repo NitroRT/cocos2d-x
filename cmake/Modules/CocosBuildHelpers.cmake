@@ -94,6 +94,11 @@ function(cocos_mark_multi_resources res_out)
 
     foreach(cc_folder ${opt_FOLDERS})
         file(GLOB_RECURSE folder_files "${cc_folder}/*")
+        list(FILTER folder_files EXCLUDE REGEX ".*/\\.git.*")      # Ignore .git, .gitignore, .gitmodules
+        list(FILTER folder_files EXCLUDE REGEX ".*/\\.github.*")   # Ignore .github/
+        list(FILTER folder_files EXCLUDE REGEX ".*/\\.svn.*")      # Ignore SVN-folders
+        list(FILTER folder_files EXCLUDE REGEX ".*/\\.DS_Store")   # Ignore macOS .DS_Store
+        list(FILTER folder_files EXCLUDE REGEX ".*/Thumbs\\.db")   # Ignore Windows Thumbs.db
         list(APPEND tmp_file_list ${folder_files})
         cocos_mark_resources(FILES ${folder_files} BASEDIR ${cc_folder} RESOURCEBASE ${opt_RES_TO})
     endforeach()
