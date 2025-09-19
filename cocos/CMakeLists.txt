@@ -152,9 +152,10 @@ if(XCODE OR VS)
 endif()
 
 if(CMAKE_VERSION VERSION_GREATER_EQUAL "3.16.0")
-    #message(STATUS "CMake 3.16 target_precompile_headers")
-    target_precompile_headers(cocos2d PRIVATE 
-       "$<$<COMPILE_LANGUAGE:CXX>:cocos2d.h>")
+    if (NOT ANDROID)
+        target_precompile_headers(cocos2d PRIVATE
+            "$<$<COMPILE_LANGUAGE:CXX>:cocos2d.h>")
+    endif()
 endif()
 
 #if(XCODE)

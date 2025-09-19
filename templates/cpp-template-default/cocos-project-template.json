@@ -18,7 +18,9 @@
                "proj.android/app/res/values/strings.xml",
                "proj.ios_mac/ios/main.m",
                "proj.ios_mac/ios/Prefix.pch",
-               "CMakeLists.txt"
+               "CMakeLists.txt",
+               "proj.android/app/build.gradle",
+               "proj.android/app/AndroidManifest.xml"
             ]
          },
          "project_replace_package_name":{
