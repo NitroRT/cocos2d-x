@@ -94,8 +94,8 @@ Build Requirements
 * or Windows 10+, VS 2022
 * Python 3.11+
 * NDK r16+ is required to build Android games
-* Android Studio 3.0.0+ to build Android games(tested with 3.0.0)
-* JRE or JDK 1.6+ is required for web publishing
+* Android Studio 2021.2.1 to build Android games (SDK 33)
+* JRE or JDK 17+ is required for web publishing
 
 Runtime Requirements
 --------------------
