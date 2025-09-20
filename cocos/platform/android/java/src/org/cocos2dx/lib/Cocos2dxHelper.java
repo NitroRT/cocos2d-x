@@ -306,16 +306,23 @@ public class Cocos2dxHelper {
     }
 
     public static void vibrate(float duration) {
-        //sVibrateService.vibrate((long)(duration * 1000));
-        long time = (long) duration;
+        long ms = (long) duration;
+        if (ms <= 30)
+            ms = 30;
 
-        if (sVibrateService == null) 
-            return;
-
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            sVibrateService.vibrate(VibrationEffect.createOneShot(time, VibrationEffect.DEFAULT_AMPLITUDE));
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            // Android 10+ (API 29):
+            sVibrateService.vibrate(
+                    VibrationEffect.createPredefined(VibrationEffect.EFFECT_CLICK)
+            );
+        } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            // Android 8.0–9.0 (API 26–28): using oneShot
+            sVibrateService.vibrate(
+                    VibrationEffect.createOneShot(ms, VibrationEffect.DEFAULT_AMPLITUDE)
+            );
         } else {
-            sVibrateService.vibrate(time);
+            // before Android 8: old
+            sVibrateService.vibrate(ms);
         }
     }
 
