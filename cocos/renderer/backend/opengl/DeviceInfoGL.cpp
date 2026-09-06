@@ -24,8 +24,144 @@
  
 #include "DeviceInfoGL.h"
 #include "platform/CCGL.h"
+#include "base/ccMacros.h"
+#include "base/CCConsole.h"
+
+#if defined(COCOS2D_DEBUG) && COCOS2D_DEBUG > 0
+#define CC_GL_DEBUG_OUTPUT_SUPPORTED 1
+#else
+#define CC_GL_DEBUG_OUTPUT_SUPPORTED 0
+#endif
+
+#if CC_GL_DEBUG_OUTPUT_SUPPORTED
+#if CC_TARGET_PLATFORM == CC_PLATFORM_ANDROID
+#include <EGL/egl.h>
+
+// The GLES headers carry only the _KHR spelling, with the values GL 4.3 later made core, so
+// both backends are aliased to one set of names and the code below reads the same on either.
+#define CC_GL_DEBUG_APIENTRY                GL_APIENTRY
+#define CC_GL_DEBUG_OUTPUT                  GL_DEBUG_OUTPUT_KHR
+#define CC_GL_DEBUG_OUTPUT_SYNCHRONOUS      GL_DEBUG_OUTPUT_SYNCHRONOUS_KHR
+#define CC_GL_DEBUG_SOURCE_API              GL_DEBUG_SOURCE_API_KHR
+#define CC_GL_DEBUG_SOURCE_WINDOW_SYSTEM    GL_DEBUG_SOURCE_WINDOW_SYSTEM_KHR
+#define CC_GL_DEBUG_SOURCE_SHADER_COMPILER  GL_DEBUG_SOURCE_SHADER_COMPILER_KHR
+#define CC_GL_DEBUG_SOURCE_THIRD_PARTY      GL_DEBUG_SOURCE_THIRD_PARTY_KHR
+#define CC_GL_DEBUG_SOURCE_APPLICATION      GL_DEBUG_SOURCE_APPLICATION_KHR
+#define CC_GL_DEBUG_TYPE_ERROR              GL_DEBUG_TYPE_ERROR_KHR
+#define CC_GL_DEBUG_TYPE_DEPRECATED         GL_DEBUG_TYPE_DEPRECATED_BEHAVIOR_KHR
+#define CC_GL_DEBUG_TYPE_UNDEFINED          GL_DEBUG_TYPE_UNDEFINED_BEHAVIOR_KHR
+#define CC_GL_DEBUG_TYPE_PORTABILITY        GL_DEBUG_TYPE_PORTABILITY_KHR
+#define CC_GL_DEBUG_TYPE_PERFORMANCE        GL_DEBUG_TYPE_PERFORMANCE_KHR
+#define CC_GL_DEBUG_TYPE_MARKER             GL_DEBUG_TYPE_MARKER_KHR
+#define CC_GL_DEBUG_SEVERITY_HIGH           GL_DEBUG_SEVERITY_HIGH_KHR
+#define CC_GL_DEBUG_SEVERITY_MEDIUM         GL_DEBUG_SEVERITY_MEDIUM_KHR
+#define CC_GL_DEBUG_SEVERITY_LOW            GL_DEBUG_SEVERITY_LOW_KHR
+#define CC_GL_DEBUG_SEVERITY_NOTIFICATION   GL_DEBUG_SEVERITY_NOTIFICATION_KHR
+#else
+#define CC_GL_DEBUG_APIENTRY                GLAPIENTRY
+#define CC_GL_DEBUG_OUTPUT                  GL_DEBUG_OUTPUT
+#define CC_GL_DEBUG_OUTPUT_SYNCHRONOUS      GL_DEBUG_OUTPUT_SYNCHRONOUS
+#define CC_GL_DEBUG_SOURCE_API              GL_DEBUG_SOURCE_API
+#define CC_GL_DEBUG_SOURCE_WINDOW_SYSTEM    GL_DEBUG_SOURCE_WINDOW_SYSTEM
+#define CC_GL_DEBUG_SOURCE_SHADER_COMPILER  GL_DEBUG_SOURCE_SHADER_COMPILER
+#define CC_GL_DEBUG_SOURCE_THIRD_PARTY      GL_DEBUG_SOURCE_THIRD_PARTY
+#define CC_GL_DEBUG_SOURCE_APPLICATION      GL_DEBUG_SOURCE_APPLICATION
+#define CC_GL_DEBUG_TYPE_ERROR              GL_DEBUG_TYPE_ERROR
+#define CC_GL_DEBUG_TYPE_DEPRECATED         GL_DEBUG_TYPE_DEPRECATED_BEHAVIOR
+#define CC_GL_DEBUG_TYPE_UNDEFINED          GL_DEBUG_TYPE_UNDEFINED_BEHAVIOR
+#define CC_GL_DEBUG_TYPE_PORTABILITY        GL_DEBUG_TYPE_PORTABILITY
+#define CC_GL_DEBUG_TYPE_PERFORMANCE        GL_DEBUG_TYPE_PERFORMANCE
+#define CC_GL_DEBUG_TYPE_MARKER             GL_DEBUG_TYPE_MARKER
+#define CC_GL_DEBUG_SEVERITY_HIGH           GL_DEBUG_SEVERITY_HIGH
+#define CC_GL_DEBUG_SEVERITY_MEDIUM         GL_DEBUG_SEVERITY_MEDIUM
+#define CC_GL_DEBUG_SEVERITY_LOW            GL_DEBUG_SEVERITY_LOW
+#define CC_GL_DEBUG_SEVERITY_NOTIFICATION   GL_DEBUG_SEVERITY_NOTIFICATION
+#endif
+#endif
 
 CC_BACKEND_BEGIN
+
+#if CC_GL_DEBUG_OUTPUT_SUPPORTED
+namespace
+{
+    const char* debugSourceName(GLenum source)
+    {
+        switch (source)
+        {
+        case CC_GL_DEBUG_SOURCE_API:                return "api";
+        case CC_GL_DEBUG_SOURCE_WINDOW_SYSTEM:      return "window system";
+        case CC_GL_DEBUG_SOURCE_SHADER_COMPILER:    return "shader compiler";
+        case CC_GL_DEBUG_SOURCE_THIRD_PARTY:        return "third party";
+        case CC_GL_DEBUG_SOURCE_APPLICATION:        return "application";
+        default:                                    return "other";
+        }
+    }
+
+    const char* debugTypeName(GLenum type)
+    {
+        switch (type)
+        {
+        case CC_GL_DEBUG_TYPE_ERROR:                return "error";
+        case CC_GL_DEBUG_TYPE_DEPRECATED:           return "deprecated behaviour";
+        case CC_GL_DEBUG_TYPE_UNDEFINED:            return "undefined behaviour";
+        case CC_GL_DEBUG_TYPE_PORTABILITY:          return "portability";
+        case CC_GL_DEBUG_TYPE_PERFORMANCE:          return "performance";
+        case CC_GL_DEBUG_TYPE_MARKER:               return "marker";
+        default:                                    return "other";
+        }
+    }
+
+    const char* debugSeverityName(GLenum severity)
+    {
+        switch (severity)
+        {
+        case CC_GL_DEBUG_SEVERITY_HIGH:             return "HIGH";
+        case CC_GL_DEBUG_SEVERITY_MEDIUM:           return "MEDIUM";
+        case CC_GL_DEBUG_SEVERITY_LOW:              return "LOW";
+        default:                                    return "INFO";
+        }
+    }
+
+    void CC_GL_DEBUG_APIENTRY onDebugMessage(GLenum source, GLenum type, GLuint id, GLenum severity,
+                                             GLsizei, const GLchar* message, const void*)
+    {
+        cocos2d::log("cocos2d: GL %s %s from %s (id %u): %s",
+                     debugSeverityName(severity), debugTypeName(type), debugSourceName(source),
+                     id, message ? message : "");
+    }
+
+    void enableDebugOutput(const std::string& extensions)
+    {
+#if CC_TARGET_PLATFORM == CC_PLATFORM_ANDROID
+        if (extensions.find("GL_KHR_debug") == std::string::npos)
+        {
+            cocos2d::log("cocos2d: KHR_debug is unavailable, GL errors stay silent until the next glGetError()");
+            return;
+        }
+
+        auto messageCallback = (PFNGLDEBUGMESSAGECALLBACKKHRPROC)eglGetProcAddress("glDebugMessageCallbackKHR");
+        auto messageControl = (PFNGLDEBUGMESSAGECONTROLKHRPROC)eglGetProcAddress("glDebugMessageControlKHR");
+#else
+        CC_UNUSED_PARAM(extensions);
+        auto messageCallback = (GLEW_VERSION_4_3 || GLEW_KHR_debug) ? glDebugMessageCallback : nullptr;
+        auto messageControl = (GLEW_VERSION_4_3 || GLEW_KHR_debug) ? glDebugMessageControl : nullptr;
+#endif
+        if (!messageCallback)
+        {
+            cocos2d::log("cocos2d: KHR_debug is unavailable, GL errors stay silent until the next glGetError()");
+            return;
+        }
+
+        glEnable(CC_GL_DEBUG_OUTPUT);
+        glEnable(CC_GL_DEBUG_OUTPUT_SYNCHRONOUS);
+        messageCallback(onDebugMessage, nullptr);
+        if (messageControl)
+            messageControl(GL_DONT_CARE, GL_DONT_CARE, CC_GL_DEBUG_SEVERITY_NOTIFICATION, 0, nullptr, GL_FALSE);
+
+        cocos2d::log("cocos2d: GL debug output enabled");
+    }
+}
+#endif
 
 bool DeviceInfoGL::init()
 {
@@ -33,6 +169,9 @@ bool DeviceInfoGL::init()
     glGetIntegerv(GL_MAX_TEXTURE_SIZE, &_maxTextureSize);
     glGetIntegerv(GL_MAX_COMBINED_TEXTURE_IMAGE_UNITS, &_maxTextureUnits);
     _glExtensions = (const char*)glGetString(GL_EXTENSIONS);
+#if CC_GL_DEBUG_OUTPUT_SUPPORTED
+    enableDebugOutput(_glExtensions);
+#endif
     return true;
 }
 

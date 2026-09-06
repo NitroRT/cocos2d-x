@@ -247,6 +247,8 @@ void ProgramCache::addProgram(ProgramType type)
             break;
     }
     program->setProgramType(type);
+    if (!program->isValid())
+        CCLOG("cocos2d: ERROR: built-in program %d is unusable, see the link log above", static_cast<int>(type));
     ProgramCache::_cachedPrograms.emplace(type, program);
 }
 
