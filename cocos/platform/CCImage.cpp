@@ -253,6 +253,8 @@ namespace
         _pixel3_formathash::value_type(PVR3TexturePixelFormat::PVRTC4BPP_RGBA,      backend::PixelFormat::PVRTC4A),
 
         _pixel3_formathash::value_type(PVR3TexturePixelFormat::ETC1,        backend::PixelFormat::ETC),
+        _pixel3_formathash::value_type(PVR3TexturePixelFormat::ETC2_RGB,    backend::PixelFormat::ETC2_RGB),
+        _pixel3_formathash::value_type(PVR3TexturePixelFormat::ETC2_RGBA,   backend::PixelFormat::ETC2_RGBA),
     };
         
     static const int PVR3_MAX_TABLE_ELEMENTS = sizeof(v3_pixel_formathash_value) / sizeof(v3_pixel_formathash_value[0]);
@@ -1368,6 +1370,14 @@ bool Image::initWithPVRv3Data(const unsigned char * data, ssize_t dataLen)
                     }
                 }
                 blockSize = 4 * 4; // Pixel by pixel block size for 4bpp
+                widthBlocks = width / 4;
+                heightBlocks = height / 4;
+                break;
+            case PVR3TexturePixelFormat::ETC2_RGB:
+            case PVR3TexturePixelFormat::ETC2_RGBA:
+                // 8 and 16 bytes per 4x4 block respectively, which the shared
+                // widthBlocks * heightBlocks * (blockSize * bpp / 8) below already yields
+                blockSize = 4 * 4;
                 widthBlocks = width / 4;
                 heightBlocks = height / 4;
                 break;
