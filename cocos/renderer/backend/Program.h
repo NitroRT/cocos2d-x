@@ -113,6 +113,12 @@ public:
      * @ Fragment shader.
      */
     const std::string& getFragmentShader() const { return _fragmentShader; }
+
+    /**
+     * Whether the underlying program object exists and linked successfully.
+     * @return true if the program can be used for rendering.
+     */
+    virtual bool isValid() const { return true; }
     
     /**
      * Get engine built-in program type.

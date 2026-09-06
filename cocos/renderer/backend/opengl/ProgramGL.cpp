@@ -127,7 +127,7 @@ void ProgramGL::compileProgram()
     glGetProgramiv(_program, GL_LINK_STATUS, &status);
     if (GL_FALSE == status)
     {
-        printf("cocos2d: ERROR: %s: failed to link program ", __FUNCTION__);
+        cocos2d::log("cocos2d: ERROR: %s: failed to link program", __FUNCTION__);
 #ifdef COCOS2D_DEBUG
         GLint logSize = 0;
         glGetProgramiv( _program, GL_INFO_LOG_LENGTH, &logSize );
@@ -138,6 +138,8 @@ void ProgramGL::compileProgram()
             glGetProgramInfoLog( _program, logSize, &logSize, &errorLog[0] );
             cocos2d::log( "cocos2d: Linking shader: %s", (char*)errorLog.data() );
         }
+        cocos2d::log( "cocos2d: failed vertex shader:\n%s", _vertexShader.substr(0, 512).c_str() );
+        cocos2d::log( "cocos2d: failed fragment shader:\n%s", _fragmentShader.substr(0, 512).c_str() );
 #endif
         glDeleteProgram(_program);
         _program = 0;

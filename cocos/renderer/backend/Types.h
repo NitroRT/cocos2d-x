@@ -124,6 +124,11 @@ enum class PixelFormat
     // a stencil render target.
     D24S8,
 
+    //! ETC2-compressed texture, 4 BPP, no alpha
+    ETC2_RGB,
+    //! ETC2/EAC-compressed texture, 8 BPP, with alpha
+    ETC2_RGBA,
+
     DEFAULT = AUTO,
 
     NONE = -1

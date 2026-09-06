@@ -52,6 +52,15 @@ typedef char GLchar;
 #define GL_BGRA  0x80E1
 #endif
 
+// ETC2 is core from GLES 3 on and so is absent from the GLES 2 headers included above, while
+// glCompressedTexImage2D that consumes these is plain GLES 2 - only the enum values are missing.
+#ifndef GL_COMPRESSED_RGB8_ETC2
+#define GL_COMPRESSED_RGB8_ETC2       0x9274
+#endif
+#ifndef GL_COMPRESSED_RGBA8_ETC2_EAC
+#define GL_COMPRESSED_RGBA8_ETC2_EAC  0x9278
+#endif
+
 //declare here while define in EGLView_android.cpp
 extern PFNGLGENVERTEXARRAYSOESPROC glGenVertexArraysOESEXT;
 extern PFNGLBINDVERTEXARRAYOESPROC glBindVertexArrayOESEXT;

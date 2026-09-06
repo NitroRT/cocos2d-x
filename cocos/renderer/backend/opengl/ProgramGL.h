@@ -86,6 +86,12 @@ public:
     inline GLuint getHandler() const { return _program; }
 
     /**
+     * Whether the underlying program object exists and linked successfully.
+     * @return true if the program can be used for rendering.
+     */
+    virtual bool isValid() const override { return _program != 0; }
+
+    /**
      * Calculate attribute information according to vertex layout.
      */
     void computeAttributeInfos(const RenderPipelineDescriptor& descriptor);
