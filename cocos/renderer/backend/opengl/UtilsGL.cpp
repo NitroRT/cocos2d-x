@@ -26,7 +26,31 @@
 #include "ProgramGL.h"
 #include "renderer/backend/Types.h"
 
+#include <cstdlib>
+#include <cstring>
+
 CC_BACKEND_BEGIN
+
+#ifdef CC_USE_GLES
+namespace
+{
+    // A depth-stencil texture takes an unsized internal format on GLES 2 and a sized one from
+    // GLES 3 on, and the driver may hand out a 3.x context even where 2.0 was requested, so the
+    // choice has to be made against the context we actually got.
+    bool isGLES3OrAbove()
+    {
+        static const bool result = []
+        {
+            const char* version = (const char*)glGetString(GL_VERSION);
+            if (!version)
+                return false;
+            const char* es = std::strstr(version, "OpenGL ES ");
+            return es != nullptr && std::atoi(es + 10) >= 3;
+        }();
+        return result;
+    }
+}
+#endif
 
 
 GLenum UtilsGL::toGLAttributeType(VertexFormat vertexFormat)
@@ -349,7 +373,7 @@ void UtilsGL::toGLTypes(PixelFormat textureFormat, GLint &internalFormat, GLuint
     case PixelFormat::D24S8:
 #ifdef CC_USE_GLES
         format = GL_DEPTH_STENCIL_OES;
-        internalFormat = GL_DEPTH_STENCIL_OES;
+        internalFormat = isGLES3OrAbove() ? GL_DEPTH24_STENCIL8 : GL_DEPTH_STENCIL_OES;
         type = GL_UNSIGNED_INT_24_8_OES;
 #else
         format = GL_DEPTH_STENCIL;
