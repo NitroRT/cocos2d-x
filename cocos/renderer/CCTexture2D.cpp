@@ -667,6 +667,12 @@ const char* Texture2D::getStringForFormat() const
         case backend::PixelFormat::ETC:
             return "ETC";
 
+        case backend::PixelFormat::ETC2_RGB:
+            return "ETC2_RGB";
+
+        case backend::PixelFormat::ETC2_RGBA:
+            return "ETC2_RGBA";
+
         case backend::PixelFormat::S3TC_DXT1:
             return "S3TC_DXT1";
             

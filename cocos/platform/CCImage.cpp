@@ -1078,6 +1078,8 @@ namespace
             case PVR3TexturePixelFormat::PVRTC4BPP_RGB:
             case PVR3TexturePixelFormat::PVRTC4BPP_RGBA:
             case PVR3TexturePixelFormat::ETC1:
+            case PVR3TexturePixelFormat::ETC2_RGB:
+            case PVR3TexturePixelFormat::ETC2_RGBA:
             case PVR3TexturePixelFormat::RGBA8888:
             case PVR3TexturePixelFormat::RGBA4444:
             case PVR3TexturePixelFormat::RGBA5551:
@@ -1376,10 +1378,12 @@ bool Image::initWithPVRv3Data(const unsigned char * data, ssize_t dataLen)
             case PVR3TexturePixelFormat::ETC2_RGB:
             case PVR3TexturePixelFormat::ETC2_RGBA:
                 // 8 and 16 bytes per 4x4 block respectively, which the shared
-                // widthBlocks * heightBlocks * (blockSize * bpp / 8) below already yields
+                // widthBlocks * heightBlocks * (blockSize * bpp / 8) below already yields.
+                // Rounded up because ETC2 allows sizes that are not a multiple of 4 and pads
+                // the last row and column with a partial block that is still stored in full.
                 blockSize = 4 * 4;
-                widthBlocks = width / 4;
-                heightBlocks = height / 4;
+                widthBlocks = (width + 3) / 4;
+                heightBlocks = (height + 3) / 4;
                 break;
             case PVR3TexturePixelFormat::BGRA8888:
                 if (! Configuration::getInstance()->supportsBGRA8888())

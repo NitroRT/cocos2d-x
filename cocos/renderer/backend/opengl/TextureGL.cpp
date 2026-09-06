@@ -85,7 +85,8 @@ Texture2DGL::Texture2DGL(const TextureDescriptor& descriptor) : Texture2DBackend
     // Listen this event to restored texture id after coming to foreground on Android.
     _backToForegroundListener = EventListenerCustom::create(EVENT_RENDERER_RECREATED, [this](EventCustom*){
         glGenTextures(1, &(this->_textureInfo.texture));
-        this->initWithZeros();
+        if (!this->_isCompressed)
+            this->initWithZeros();
     });
     Director::getInstance()->getEventDispatcher()->addEventListenerWithFixedPriority(_backToForegroundListener, -1);
 #endif
@@ -116,7 +117,10 @@ void Texture2DGL::updateTextureDescriptor(const cocos2d::backend::TextureDescrip
 
     // Update data here because `updateData()` may not be invoked later.
     // For example, a texture used as depth buffer will not invoke updateData().
-    initWithZeros();
+    // A compressed texture is filled by updateCompressedData() instead, and its internal format
+    // is not one glTexImage2D accepts, so zeroing it here would only raise a GL error.
+    if (!_isCompressed)
+        initWithZeros();
 }
 
 Texture2DGL::~Texture2DGL()

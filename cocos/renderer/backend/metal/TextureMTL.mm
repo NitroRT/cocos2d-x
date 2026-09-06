@@ -172,7 +172,9 @@ namespace
         {
             bytesPerRow = 0;
         }
-        else if (textureFormat == PixelFormat::ETC)
+        else if (textureFormat == PixelFormat::ETC ||
+                 textureFormat == PixelFormat::ETC2_RGB ||
+                 textureFormat == PixelFormat::ETC2_RGBA)
         {
             bytesPerRow = getBytesPerRowETC(pixelFormat, width);
         }
