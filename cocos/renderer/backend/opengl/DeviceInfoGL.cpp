@@ -204,6 +204,18 @@ bool DeviceInfoGL::checkForFeatureSupported(FeatureType feature)
         featureSupported = checkForGLExtension("GL_OES_compressed_ETC1_RGB8_texture");
 #endif
         break;
+    case FeatureType::ETC2:
+    {
+        GLint major = 0, minor = 0;
+        glGetIntegerv(GL_MAJOR_VERSION, &major);
+        glGetIntegerv(GL_MINOR_VERSION, &minor);
+#ifdef CC_PLATFORM_PC
+        featureSupported = major > 4 || (major == 4 && minor >= 3);
+#else
+        featureSupported = major >= 3;
+#endif
+        break;
+    }
     case FeatureType::S3TC:
 #ifdef GL_EXT_texture_compression_s3tc
         featureSupported = checkForGLExtension("GL_EXT_texture_compression_s3tc");
