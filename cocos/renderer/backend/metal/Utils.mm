@@ -77,6 +77,20 @@ namespace {
 #endif
         return pixelFormat;
     }
+
+    bool supportsETC()
+    {
+#if (CC_TARGET_PLATFORM == CC_PLATFORM_MAC)
+        // The ETC2/EAC formats are declared by the macOS SDK since 11.0, but only an Apple
+        // GPU can sample them. An Intel Mac has to fall through to MTLPixelFormatInvalid,
+        // otherwise Metal is handed a format it rejects at texture creation.
+        static const bool supported =
+            [static_cast<DeviceMTL*>(DeviceMTL::getInstance())->getMTLDevice() supportsFamily:MTLGPUFamilyApple1];
+        return supported;
+#else
+        return true;
+#endif
+    }
 }
 
 MTLPixelFormat Utils::getDefaultDepthStencilAttachmentPixelFormat()
@@ -121,11 +135,6 @@ MTLPixelFormat Utils::toMTLPixelFormat(PixelFormat textureFormat)
             return MTLPixelFormatPVRTC_RGBA_2BPP;
         case PixelFormat::PVRTC2:
             return MTLPixelFormatPVRTC_RGB_2BPP;
-        case PixelFormat::ETC:
-        case PixelFormat::ETC2_RGB:
-            return MTLPixelFormatETC2_RGB8;
-        case PixelFormat::ETC2_RGBA:
-            return MTLPixelFormatEAC_RGBA8;
 #else
         case PixelFormat::S3TC_DXT1:
             return MTLPixelFormatBC1_RGBA;
@@ -134,6 +143,13 @@ MTLPixelFormat Utils::toMTLPixelFormat(PixelFormat textureFormat)
         case PixelFormat::S3TC_DXT5:
             return MTLPixelFormatBC3_RGBA;
 #endif
+        // Every Metal-capable iOS device decodes ETC2, and so does an Apple Silicon Mac,
+        // so this stays outside the platform branch above.
+        case PixelFormat::ETC:
+        case PixelFormat::ETC2_RGB:
+            return supportsETC() ? MTLPixelFormatETC2_RGB8 : MTLPixelFormatInvalid;
+        case PixelFormat::ETC2_RGBA:
+            return supportsETC() ? MTLPixelFormatEAC_RGBA8 : MTLPixelFormatInvalid;
         case PixelFormat::RGBA8888:
             return MTLPixelFormatRGBA8Unorm;
             // Should transfer the data to match pixel format when updating data.

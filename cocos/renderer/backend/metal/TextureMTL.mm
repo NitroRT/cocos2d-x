@@ -118,7 +118,6 @@ namespace
     std::size_t getBytesPerRowETC(MTLPixelFormat pixleFormat, std::size_t width)
     {
         std::size_t bytesPerRow = 0;
-#if (CC_TARGET_PLATFORM == CC_PLATFORM_IOS)
         uint32_t bytesPerBlock = 0, blockWidth = 4;
         switch (pixleFormat) {
             case MTLPixelFormatETC2_RGB8:
@@ -136,7 +135,6 @@ namespace
         }
         auto blocksPerRow = (width + (blockWidth - 1)) / blockWidth;
         bytesPerRow = blocksPerRow * bytesPerBlock;
-#endif
         return bytesPerRow;
     }
     
@@ -268,8 +266,15 @@ void TextureMTL::createTexture(id<MTLDevice> mtlDevice, const TextureDescriptor&
 {
     MTLPixelFormat pixelFormat = Utils::toMTLPixelFormat(descriptor.textureFormat);
     if(pixelFormat == MTLPixelFormatInvalid)
+    {
+        // Bailing out leaves _mtlTexture nil, and replaceRegion: on nil is a silent no-op.
+        // NONE is the caller saying it has no format yet, everything else is a real miss.
+        if(descriptor.textureFormat != PixelFormat::NONE)
+            CCLOGERROR("cocos2d: Metal: PixelFormat %d has no Metal equivalent on this device, texture will be empty",
+                       static_cast<int>(descriptor.textureFormat));
         return;
-    
+    }
+
     MTLTextureDescriptor* textureDescriptor =
            [MTLTextureDescriptor texture2DDescriptorWithPixelFormat:pixelFormat
                                                               width:descriptor.width
@@ -391,8 +396,15 @@ void TextureCubeMTL::createTexture(id<MTLDevice> mtlDevice, const TextureDescrip
 {
     MTLPixelFormat pixelFormat = Utils::toMTLPixelFormat(descriptor.textureFormat);
     if(pixelFormat == MTLPixelFormatInvalid)
+    {
+        // Bailing out leaves _mtlTexture nil, and replaceRegion: on nil is a silent no-op.
+        // NONE is the caller saying it has no format yet, everything else is a real miss.
+        if(descriptor.textureFormat != PixelFormat::NONE)
+            CCLOGERROR("cocos2d: Metal: PixelFormat %d has no Metal equivalent on this device, texture will be empty",
+                       static_cast<int>(descriptor.textureFormat));
         return;
-    
+    }
+
     MTLTextureDescriptor* textureDescriptor =
     [MTLTextureDescriptor textureCubeDescriptorWithPixelFormat:pixelFormat size:descriptor.width mipmapped:YES];
     
