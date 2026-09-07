@@ -214,17 +214,17 @@ void UtilsGL::toGLTypes(PixelFormat textureFormat, GLint &internalFormat, GLuint
     switch (textureFormat)
     {
     case PixelFormat::RGBA8888:
-        internalFormat = GL_RGBA;
+        internalFormat = GL_RGBA8;
         format = GL_RGBA;
         type = GL_UNSIGNED_BYTE;
         break;
     case PixelFormat::RGB888:
-        internalFormat = GL_RGB;
+        internalFormat = GL_RGB8;
         format = GL_RGB;
         type = GL_UNSIGNED_BYTE;
         break;
     case PixelFormat::RGBA4444:
-        internalFormat = GL_RGBA;
+        internalFormat = GL_RGBA4;
         format = GL_RGBA;
         type = GL_UNSIGNED_SHORT_4_4_4_4;
         break;
@@ -244,12 +244,12 @@ void UtilsGL::toGLTypes(PixelFormat textureFormat, GLint &internalFormat, GLuint
         type = GL_UNSIGNED_BYTE;
         break;
     case PixelFormat::RGB565:
-        internalFormat = GL_RGB;
+        internalFormat = GL_RGB565;
         format = GL_RGB;
         type = GL_UNSIGNED_SHORT_5_6_5;
         break;
     case PixelFormat::RGB5A1:
-        internalFormat = GL_RGBA;
+        internalFormat = GL_RGB5_A1;
         format = GL_RGBA;
         type = GL_UNSIGNED_SHORT_5_5_5_1;
         break;
@@ -363,15 +363,9 @@ void UtilsGL::toGLTypes(PixelFormat textureFormat, GLint &internalFormat, GLuint
         //            internalFormat = GL_DEPTH_COMPONENT;
         //            type = GL_UNSIGNED_INT;
     case PixelFormat::D24S8:
-#ifdef CC_USE_GLES
-        format = GL_DEPTH_STENCIL_OES;
-        internalFormat = GL_DEPTH24_STENCIL8;
-        type = GL_UNSIGNED_INT_24_8_OES;
-#else
         format = GL_DEPTH_STENCIL;
         internalFormat = GL_DEPTH24_STENCIL8;
         type = GL_UNSIGNED_INT_24_8;
-#endif
         break;
     default:
         break;

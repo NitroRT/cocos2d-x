@@ -378,6 +378,13 @@ void CommandBufferGL::endRenderPass()
 
 void CommandBufferGL::endFrame()
 {
+#ifdef CC_USE_GLES
+    static const GLenum defaultFBOAttachments[] = {GL_DEPTH, GL_STENCIL};
+    static const GLenum generatedFBOAttachments[] = {GL_DEPTH_ATTACHMENT, GL_STENCIL_ATTACHMENT};
+    const bool isDefaultFBO = (static_cast<GLint>(_currentFBO) == _defaultFBO);
+    glInvalidateFramebuffer(GL_FRAMEBUFFER, 2, isDefaultFBO ? defaultFBOAttachments : generatedFBOAttachments);
+    CHECK_GL_ERROR_DEBUG();
+#endif
 }
 
 void CommandBufferGL::setDepthStencilState(DepthStencilState* depthStencilState)	
