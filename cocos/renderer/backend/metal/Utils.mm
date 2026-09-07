@@ -78,19 +78,66 @@ namespace {
         return pixelFormat;
     }
 
+    id<MTLDevice> currentMTLDevice()
+    {
+        // The view hands the layer to the backend before Device is constructed, so going
+        // through the layer keeps this callable during device init too.
+        return DeviceMTL::getCAMetalLayer().device;
+    }
+
+    // Highest supported Apple GPU family as a plain tier number, 0 on a non-Apple GPU
+    // (today that means an Intel Mac). Apple's families are cumulative, so the highest
+    // supported tier also answers for every lower one.
+    int appleGPUFamily()
+    {
+        static const int family = []
+        {
+            id<MTLDevice> device = currentMTLDevice();
+            // Counting up until the device stops answering, rather than down from the
+            // newest family Apple has shipped, so this needs no bumping when they ship
+            // another one. Offsets from MTLGPUFamilyApple1 instead of the MTLGPUFamilyAppleN
+            // constants for the same reason - the tiers are consecutive, and supportsFamily:
+            // answers NO for a value the OS does not know. The bound is a runaway guard
+            // against a driver that says yes to everything, not a limit on what we accept.
+            constexpr int RUNAWAY_GUARD = 64;
+            int tier = 0;
+            while (tier < RUNAWAY_GUARD &&
+                   [device supportsFamily:static_cast<MTLGPUFamily>(MTLGPUFamilyApple1 + tier)])
+                ++tier;
+            return tier;
+        }();
+        return family;
+    }
+
     bool supportsETC()
     {
-#if (CC_TARGET_PLATFORM == CC_PLATFORM_MAC)
-        // The ETC2/EAC formats are declared by the macOS SDK since 11.0, but only an Apple
-        // GPU can sample them. An Intel Mac has to fall through to MTLPixelFormatInvalid,
-        // otherwise Metal is handed a format it rejects at texture creation.
-        static const bool supported =
-            [static_cast<DeviceMTL*>(DeviceMTL::getInstance())->getMTLDevice() supportsFamily:MTLGPUFamilyApple1];
-        return supported;
-#else
-        return true;
-#endif
+        // Every Apple GPU decodes ETC2/EAC. The formats are in the macOS SDK since 11.0,
+        // but an Intel Mac cannot sample them and has to fall through to
+        // MTLPixelFormatInvalid instead of handing Metal a format it rejects.
+        return appleGPUFamily() >= 1;
     }
+
+    bool supportsPVRTC()
+    {
+        // Apple GPU family 9 (A17 Pro, M3) dropped PVRTC, and the formats are deprecated
+        // outright as of iOS 18 / macOS 15.
+        const int family = appleGPUFamily();
+        return family >= 1 && family <= 8;
+    }
+
+#if (CC_TARGET_PLATFORM == CC_PLATFORM_MAC)
+    bool supportsBC()
+    {
+        // Every Intel Mac has BC and Apple Silicon gained it with Apple7, but macOS 11
+        // exposes the answer directly, so ask instead of assuming.
+        return [currentMTLDevice() supportsBCTextureCompression];
+    }
+#endif
+}
+
+int Utils::getAppleGPUFamily()
+{
+    return appleGPUFamily();
 }
 
 MTLPixelFormat Utils::getDefaultDepthStencilAttachmentPixelFormat()
@@ -128,20 +175,20 @@ MTLPixelFormat Utils::toMTLPixelFormat(PixelFormat textureFormat)
         case PixelFormat::MTL_B5G6R5:
             return MTLPixelFormatB5G6R5Unorm;
         case PixelFormat::PVRTC4A:
-            return MTLPixelFormatPVRTC_RGBA_4BPP;
+            return supportsPVRTC() ? MTLPixelFormatPVRTC_RGBA_4BPP : MTLPixelFormatInvalid;
         case PixelFormat::PVRTC4:
-            return MTLPixelFormatPVRTC_RGB_4BPP;
+            return supportsPVRTC() ? MTLPixelFormatPVRTC_RGB_4BPP : MTLPixelFormatInvalid;
         case PixelFormat::PVRTC2A:
-            return MTLPixelFormatPVRTC_RGBA_2BPP;
+            return supportsPVRTC() ? MTLPixelFormatPVRTC_RGBA_2BPP : MTLPixelFormatInvalid;
         case PixelFormat::PVRTC2:
-            return MTLPixelFormatPVRTC_RGB_2BPP;
+            return supportsPVRTC() ? MTLPixelFormatPVRTC_RGB_2BPP : MTLPixelFormatInvalid;
 #else
         case PixelFormat::S3TC_DXT1:
-            return MTLPixelFormatBC1_RGBA;
+            return supportsBC() ? MTLPixelFormatBC1_RGBA : MTLPixelFormatInvalid;
         case PixelFormat::S3TC_DXT3:
-            return MTLPixelFormatBC2_RGBA;
+            return supportsBC() ? MTLPixelFormatBC2_RGBA : MTLPixelFormatInvalid;
         case PixelFormat::S3TC_DXT5:
-            return MTLPixelFormatBC3_RGBA;
+            return supportsBC() ? MTLPixelFormatBC3_RGBA : MTLPixelFormatInvalid;
 #endif
         // Every Metal-capable iOS device decodes ETC2, and so does an Apple Silicon Mac,
         // so this stays outside the platform branch above.

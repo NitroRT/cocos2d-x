@@ -24,378 +24,91 @@
  
 
 #include "DeviceInfoMTL.h"
+#include "Utils.h"
 #include "base/ccMacros.h"
+
+#include <string>
+
 CC_BACKEND_BEGIN
 
 namespace {
-    int getMaxVertexAttributes(FeatureSet featureSet)
+    // Implementation limits, carried over from the MTLFeatureSet tables this file used to
+    // walk and re-keyed on GPU family. MTLGPUFamily has no version axis, so each threshold
+    // below sits where the old table's newest version of that family put it.
+
+    // What Utils::getAppleGPUFamily() reports for a GPU outside the Apple series.
+    constexpr int NOT_AN_APPLE_GPU = 0;
+
+    // Maximum width and height of a 2D texture.
+    constexpr int MAX_TEXTURE_DIMENSION_SMALL = 8192;    // Apple1, Apple2
+    constexpr int MAX_TEXTURE_DIMENSION_LARGE = 16384;   // Apple3 and up, and Mac2
+    constexpr int FIRST_LARGE_TEXTURE_APPLE_FAMILY = 3;
+
+    // Entries in the texture argument table, per graphics or compute function. Apple splits
+    // this by family too, but Metal has no runtime query to check such a split against, so
+    // it stays split by OS the way the MTLFeatureSet tables had it. EMBEDDED covers every
+    // Apple OS other than macOS - iOS, iPadOS, tvOS, visionOS - which is what
+    // CC_PLATFORM_IOS actually selects, since CCPlatformConfig.h keys it on
+    // TARGET_OS_IPHONE.
+    constexpr int MAX_TEXTURE_ARGUMENT_ENTRIES_MACOS = 128;
+    constexpr int MAX_TEXTURE_ARGUMENT_ENTRIES_EMBEDDED = 31;
+
+    // Vertex attributes per vertex descriptor, and entries in the sampler state argument
+    // table. Both hold for every family, so neither is worth keying on anything.
+    constexpr int MAX_VERTEX_ATTRIBUTES = 31;
+    constexpr int MAX_SAMPLER_ARGUMENT_ENTRIES = 16;
+
+    int getMaxTextureWidthHeight(int appleFamily, bool isMac2)
     {
-        int maxAttributes = 0;
-        switch (featureSet)
+        if (appleFamily != NOT_AN_APPLE_GPU)
         {
-            case FeatureSet::FeatureSet_iOS_GPUFamily1_v1:
-            case FeatureSet::FeatureSet_iOS_GPUFamily2_v1:
-            case FeatureSet::FeatureSet_iOS_GPUFamily1_v2:
-            case FeatureSet::FeatureSet_iOS_GPUFamily2_v2:
-            case FeatureSet::FeatureSet_iOS_GPUFamily3_v1:
-            case FeatureSet::FeatureSet_iOS_GPUFamily1_v3:
-            case FeatureSet::FeatureSet_iOS_GPUFamily2_v3:
-            case FeatureSet::FeatureSet_iOS_GPUFamily3_v2:
-            case FeatureSet::FeatureSet_iOS_GPUFamily1_v4:
-            case FeatureSet::FeatureSet_iOS_GPUFamily2_v4:
-            case FeatureSet::FeatureSet_iOS_GPUFamily3_v3:
-            case FeatureSet::FeatureSet_iOS_GPUFamily4_v1:
-            case FeatureSet::FeatureSet_iOS_GPUFamily1_v5:
-            case FeatureSet::FeatureSet_iOS_GPUFamily2_v5:
-            case FeatureSet::FeatureSet_iOS_GPUFamily3_v4:
-            case FeatureSet::FeatureSet_iOS_GPUFamily4_v2:
-            case FeatureSet::FeatureSet_macOS_GPUFamily1_v1:
-            case FeatureSet::FeatureSet_macOS_GPUFamily1_v2:
-            case FeatureSet::FeatureSet_macOS_ReadWriteTextureTier2:
-            case FeatureSet::FeatureSet_macOS_GPUFamily1_v3:
-            case FeatureSet::FeatureSet_macOS_GPUFamily1_v4:
-            case FeatureSet::FeatureSet_macOS_GPUFamily2_v1:
-                maxAttributes = 31;
-                break;
-            default:
-                break;
+            return appleFamily >= FIRST_LARGE_TEXTURE_APPLE_FAMILY ? MAX_TEXTURE_DIMENSION_LARGE
+                                                                  : MAX_TEXTURE_DIMENSION_SMALL;
         }
-        return maxAttributes;
+        if (isMac2)
+            return MAX_TEXTURE_DIMENSION_LARGE;
+
+        // A device in neither family is one these tables predate. Report the smallest limit
+        // they hold rather than 0, which would collapse texture clamping in CCTexture2D.
+        return MAX_TEXTURE_DIMENSION_SMALL;
     }
-    
-    int getMaxTextureEntries(FeatureSet featureSet)
+
+    int getMaxTextureEntries()
     {
-        int maxTextureEntries = 0;
-        switch (featureSet)
-        {
-            case FeatureSet::FeatureSet_iOS_GPUFamily1_v1:
-            case FeatureSet::FeatureSet_iOS_GPUFamily2_v1:
-            case FeatureSet::FeatureSet_iOS_GPUFamily1_v2:
-            case FeatureSet::FeatureSet_iOS_GPUFamily2_v2:
-            case FeatureSet::FeatureSet_iOS_GPUFamily3_v1:
-            case FeatureSet::FeatureSet_iOS_GPUFamily1_v3:
-            case FeatureSet::FeatureSet_iOS_GPUFamily2_v3:
-            case FeatureSet::FeatureSet_iOS_GPUFamily3_v2:
-            case FeatureSet::FeatureSet_iOS_GPUFamily1_v4:
-            case FeatureSet::FeatureSet_iOS_GPUFamily2_v4:
-            case FeatureSet::FeatureSet_iOS_GPUFamily3_v3:
-            case FeatureSet::FeatureSet_iOS_GPUFamily4_v1:
-            case FeatureSet::FeatureSet_iOS_GPUFamily1_v5:
-            case FeatureSet::FeatureSet_iOS_GPUFamily2_v5:
-            case FeatureSet::FeatureSet_iOS_GPUFamily3_v4:
-            case FeatureSet::FeatureSet_iOS_GPUFamily4_v2:
-                maxTextureEntries = 31;
-                break;
-            case FeatureSet::FeatureSet_macOS_GPUFamily1_v1:
-            case FeatureSet::FeatureSet_macOS_GPUFamily1_v2:
-            case FeatureSet::FeatureSet_macOS_ReadWriteTextureTier2:
-            case FeatureSet::FeatureSet_macOS_GPUFamily1_v3:
-            case FeatureSet::FeatureSet_macOS_GPUFamily1_v4:
-            case FeatureSet::FeatureSet_macOS_GPUFamily2_v1:
-                maxTextureEntries = 128;
-                break;
-            default:
-                break;
-        }
-        return maxTextureEntries;
-    }
-    
-    int getMaxSamplerEntries(FeatureSet featureSet)
-    {
-        int maxSamplerEntries = 0;
-        switch (featureSet)
-        {
-            case FeatureSet::FeatureSet_iOS_GPUFamily1_v1:
-            case FeatureSet::FeatureSet_iOS_GPUFamily2_v1:
-            case FeatureSet::FeatureSet_iOS_GPUFamily1_v2:
-            case FeatureSet::FeatureSet_iOS_GPUFamily2_v2:
-            case FeatureSet::FeatureSet_iOS_GPUFamily3_v1:
-            case FeatureSet::FeatureSet_iOS_GPUFamily1_v3:
-            case FeatureSet::FeatureSet_iOS_GPUFamily2_v3:
-            case FeatureSet::FeatureSet_iOS_GPUFamily3_v2:
-            case FeatureSet::FeatureSet_iOS_GPUFamily1_v4:
-            case FeatureSet::FeatureSet_iOS_GPUFamily2_v4:
-            case FeatureSet::FeatureSet_iOS_GPUFamily3_v3:
-            case FeatureSet::FeatureSet_iOS_GPUFamily4_v1:
-            case FeatureSet::FeatureSet_iOS_GPUFamily1_v5:
-            case FeatureSet::FeatureSet_iOS_GPUFamily2_v5:
-            case FeatureSet::FeatureSet_iOS_GPUFamily3_v4:
-            case FeatureSet::FeatureSet_iOS_GPUFamily4_v2:
-            case FeatureSet::FeatureSet_macOS_GPUFamily1_v1:
-            case FeatureSet::FeatureSet_macOS_GPUFamily1_v2:
-            case FeatureSet::FeatureSet_macOS_ReadWriteTextureTier2:
-            case FeatureSet::FeatureSet_macOS_GPUFamily1_v3:
-            case FeatureSet::FeatureSet_macOS_GPUFamily1_v4:
-            case FeatureSet::FeatureSet_macOS_GPUFamily2_v1:
-                maxSamplerEntries = 16;
-                break;
-            default:
-                break;
-        }
-        return maxSamplerEntries;
-    }
-    
-    int getMaxTextureWidthHeight(FeatureSet featureSet)
-    {
-        int maxTextureSize = 0;
-        switch (featureSet)
-        {
-            case FeatureSet::FeatureSet_iOS_GPUFamily1_v1:
-            case FeatureSet::FeatureSet_iOS_GPUFamily2_v1:
-                maxTextureSize = 4096;
-                break;
-            case FeatureSet::FeatureSet_iOS_GPUFamily1_v2:
-            case FeatureSet::FeatureSet_iOS_GPUFamily2_v2:
-            case FeatureSet::FeatureSet_iOS_GPUFamily1_v3:
-            case FeatureSet::FeatureSet_iOS_GPUFamily2_v3:
-            case FeatureSet::FeatureSet_iOS_GPUFamily1_v4:
-            case FeatureSet::FeatureSet_iOS_GPUFamily2_v4:
-            case FeatureSet::FeatureSet_iOS_GPUFamily1_v5:
-            case FeatureSet::FeatureSet_iOS_GPUFamily2_v5:
-                maxTextureSize = 8192;
-                break;
-            case FeatureSet::FeatureSet_iOS_GPUFamily3_v1:
-            case FeatureSet::FeatureSet_iOS_GPUFamily3_v2:
-            case FeatureSet::FeatureSet_iOS_GPUFamily3_v3:
-            case FeatureSet::FeatureSet_iOS_GPUFamily4_v1:
-            case FeatureSet::FeatureSet_iOS_GPUFamily3_v4:
-            case FeatureSet::FeatureSet_iOS_GPUFamily4_v2:
-            case FeatureSet::FeatureSet_macOS_GPUFamily1_v1:
-            case FeatureSet::FeatureSet_macOS_GPUFamily1_v2:
-            case FeatureSet::FeatureSet_macOS_ReadWriteTextureTier2:
-            case FeatureSet::FeatureSet_macOS_GPUFamily1_v3:
-            case FeatureSet::FeatureSet_macOS_GPUFamily1_v4:
-            case FeatureSet::FeatureSet_macOS_GPUFamily2_v1:
-                maxTextureSize = 16384;
-                break;
-            default:
-                break;
-        }
-        return maxTextureSize;
-    }
-    
-    const char* featureSetToString(FeatureSet featureSet)
-    {
-        switch (featureSet)
-        {
-            case FeatureSet::FeatureSet_iOS_GPUFamily1_v1:
-                return "iOS_GPUFamily1_v1";
-            case FeatureSet::FeatureSet_iOS_GPUFamily2_v1:
-                return "iOS_GPUFamily2_v1";
-            case FeatureSet::FeatureSet_iOS_GPUFamily1_v2:
-                return "iOS_GPUFamily1_v2";
-            case FeatureSet::FeatureSet_iOS_GPUFamily2_v2:
-                return "iOS_GPUFamily2_v2";
-            case FeatureSet::FeatureSet_iOS_GPUFamily1_v3:
-                return "iOS_GPUFamily1_v3";
-            case FeatureSet::FeatureSet_iOS_GPUFamily2_v3:
-                return "iOS_GPUFamily2_v3";
-            case FeatureSet::FeatureSet_iOS_GPUFamily1_v4:
-                return "iOS_GPUFamily1_v4";
-            case FeatureSet::FeatureSet_iOS_GPUFamily2_v4:
-                return "iOS_GPUFamily2_v4";
-            case FeatureSet::FeatureSet_iOS_GPUFamily1_v5:
-                return "iOS_GPUFamily1_v5";
-            case FeatureSet::FeatureSet_iOS_GPUFamily2_v5:
-                return "iOS_GPUFamily2_v5";
-            case FeatureSet::FeatureSet_iOS_GPUFamily3_v1:
-                return "iOS_GPUFamily3_v1";
-            case FeatureSet::FeatureSet_iOS_GPUFamily3_v2:
-                return "iOS_GPUFamily3_v2";
-            case FeatureSet::FeatureSet_iOS_GPUFamily3_v3:
-                return "iOS_GPUFamily3_v3";
-            case FeatureSet::FeatureSet_iOS_GPUFamily4_v1:
-                return "iOS_GPUFamily4_v1";
-            case FeatureSet::FeatureSet_iOS_GPUFamily3_v4:
-                return "iOS_GPUFamily3_v4";
-            case FeatureSet::FeatureSet_iOS_GPUFamily4_v2:
-                return "iOS_GPUFamily4_v2";
-            case FeatureSet::FeatureSet_macOS_GPUFamily1_v1:
-                return "macOS_GPUFamily1_v1";
-            case FeatureSet::FeatureSet_macOS_GPUFamily1_v2:
-                return "macOS_GPUFamily1_v2";
-            case FeatureSet::FeatureSet_macOS_ReadWriteTextureTier2:
-                return "macOS_ReadWriteTextureTier2";
-            case FeatureSet::FeatureSet_macOS_GPUFamily1_v3:
-                return "macOS_GPUFamily1_v3";
-            case FeatureSet::FeatureSet_macOS_GPUFamily1_v4:
-                return "macOS_GPUFamily1_v4";
-            case FeatureSet::FeatureSet_macOS_GPUFamily2_v1:
-                return "macOS_GPUFamily2_v1";
-            default:
-                break;
-        }
-        return "";
-    }
-    
-    bool supportPVRTC(FeatureSet featureSet)
-    {
-        switch (featureSet)
-        {
-            case FeatureSet::FeatureSet_iOS_GPUFamily1_v1:
-            case FeatureSet::FeatureSet_iOS_GPUFamily2_v1:
-            case FeatureSet::FeatureSet_iOS_GPUFamily1_v2:
-            case FeatureSet::FeatureSet_iOS_GPUFamily2_v2:
-            case FeatureSet::FeatureSet_iOS_GPUFamily1_v3:
-            case FeatureSet::FeatureSet_iOS_GPUFamily2_v3:
-            case FeatureSet::FeatureSet_iOS_GPUFamily1_v4:
-            case FeatureSet::FeatureSet_iOS_GPUFamily2_v4:
-            case FeatureSet::FeatureSet_iOS_GPUFamily1_v5:
-            case FeatureSet::FeatureSet_iOS_GPUFamily2_v5:
-            case FeatureSet::FeatureSet_iOS_GPUFamily3_v1:
-            case FeatureSet::FeatureSet_iOS_GPUFamily3_v2:
-            case FeatureSet::FeatureSet_iOS_GPUFamily3_v3:
-            case FeatureSet::FeatureSet_iOS_GPUFamily4_v1:
-            case FeatureSet::FeatureSet_iOS_GPUFamily3_v4:
-            case FeatureSet::FeatureSet_iOS_GPUFamily4_v2:
-                return true;
-            case FeatureSet::FeatureSet_macOS_GPUFamily1_v1:
-            case FeatureSet::FeatureSet_macOS_GPUFamily1_v2:
-            case FeatureSet::FeatureSet_macOS_ReadWriteTextureTier2:
-            case FeatureSet::FeatureSet_macOS_GPUFamily1_v3:
-            case FeatureSet::FeatureSet_macOS_GPUFamily1_v4:
-            case FeatureSet::FeatureSet_macOS_GPUFamily2_v1:
-                return false;
-            default:
-                break;
-        }
-        return false;
-    }
-    
-    bool supportEACETC(FeatureSet featureSet)
-    {
-        switch (featureSet)
-        {
-            case FeatureSet::FeatureSet_iOS_GPUFamily1_v1:
-            case FeatureSet::FeatureSet_iOS_GPUFamily2_v1:
-            case FeatureSet::FeatureSet_iOS_GPUFamily1_v2:
-            case FeatureSet::FeatureSet_iOS_GPUFamily2_v2:
-            case FeatureSet::FeatureSet_iOS_GPUFamily1_v3:
-            case FeatureSet::FeatureSet_iOS_GPUFamily2_v3:
-            case FeatureSet::FeatureSet_iOS_GPUFamily1_v4:
-            case FeatureSet::FeatureSet_iOS_GPUFamily2_v4:
-            case FeatureSet::FeatureSet_iOS_GPUFamily1_v5:
-            case FeatureSet::FeatureSet_iOS_GPUFamily2_v5:
-            case FeatureSet::FeatureSet_iOS_GPUFamily3_v1:
-            case FeatureSet::FeatureSet_iOS_GPUFamily3_v2:
-            case FeatureSet::FeatureSet_iOS_GPUFamily3_v3:
-            case FeatureSet::FeatureSet_iOS_GPUFamily4_v1:
-            case FeatureSet::FeatureSet_iOS_GPUFamily3_v4:
-            case FeatureSet::FeatureSet_iOS_GPUFamily4_v2:
-                return true;
-            case FeatureSet::FeatureSet_macOS_GPUFamily1_v1:
-            case FeatureSet::FeatureSet_macOS_GPUFamily1_v2:
-            case FeatureSet::FeatureSet_macOS_ReadWriteTextureTier2:
-            case FeatureSet::FeatureSet_macOS_GPUFamily1_v3:
-            case FeatureSet::FeatureSet_macOS_GPUFamily1_v4:
-            case FeatureSet::FeatureSet_macOS_GPUFamily2_v1:
-                return false;
-            default:
-                break;
-        }
-        return false;
-    }
-    
-    bool supportASTC(FeatureSet featureSet)
-    {
-        switch (featureSet)
-        {
-            case FeatureSet::FeatureSet_iOS_GPUFamily1_v1:
-            case FeatureSet::FeatureSet_iOS_GPUFamily1_v2:
-            case FeatureSet::FeatureSet_iOS_GPUFamily1_v3:
-            case FeatureSet::FeatureSet_iOS_GPUFamily1_v4:
-            case FeatureSet::FeatureSet_iOS_GPUFamily1_v5:
-                return false;
-            case FeatureSet::FeatureSet_iOS_GPUFamily2_v1:
-            case FeatureSet::FeatureSet_iOS_GPUFamily2_v2:
-            case FeatureSet::FeatureSet_iOS_GPUFamily2_v3:
-            case FeatureSet::FeatureSet_iOS_GPUFamily2_v4:
-            case FeatureSet::FeatureSet_iOS_GPUFamily2_v5:
-            case FeatureSet::FeatureSet_iOS_GPUFamily3_v1:
-            case FeatureSet::FeatureSet_iOS_GPUFamily3_v2:
-            case FeatureSet::FeatureSet_iOS_GPUFamily3_v3:
-            case FeatureSet::FeatureSet_iOS_GPUFamily4_v1:
-            case FeatureSet::FeatureSet_iOS_GPUFamily3_v4:
-            case FeatureSet::FeatureSet_iOS_GPUFamily4_v2:
-                return true;
-            case FeatureSet::FeatureSet_macOS_GPUFamily1_v1:
-            case FeatureSet::FeatureSet_macOS_GPUFamily1_v2:
-            case FeatureSet::FeatureSet_macOS_ReadWriteTextureTier2:
-            case FeatureSet::FeatureSet_macOS_GPUFamily1_v3:
-            case FeatureSet::FeatureSet_macOS_GPUFamily1_v4:
-            case FeatureSet::FeatureSet_macOS_GPUFamily2_v1:
-                return false;
-            default:
-                break;
-        }
-        return false;
-    }
-    
-    bool supportS3TC(FeatureSet featureSet)
-    {
-        switch (featureSet)
-        {
-            case FeatureSet::FeatureSet_iOS_GPUFamily1_v1:
-            case FeatureSet::FeatureSet_iOS_GPUFamily1_v2:
-            case FeatureSet::FeatureSet_iOS_GPUFamily1_v3:
-            case FeatureSet::FeatureSet_iOS_GPUFamily1_v4:
-            case FeatureSet::FeatureSet_iOS_GPUFamily1_v5:
-            case FeatureSet::FeatureSet_iOS_GPUFamily2_v1:
-            case FeatureSet::FeatureSet_iOS_GPUFamily2_v2:
-            case FeatureSet::FeatureSet_iOS_GPUFamily2_v3:
-            case FeatureSet::FeatureSet_iOS_GPUFamily2_v4:
-            case FeatureSet::FeatureSet_iOS_GPUFamily2_v5:
-            case FeatureSet::FeatureSet_iOS_GPUFamily3_v1:
-            case FeatureSet::FeatureSet_iOS_GPUFamily3_v2:
-            case FeatureSet::FeatureSet_iOS_GPUFamily3_v3:
-            case FeatureSet::FeatureSet_iOS_GPUFamily4_v1:
-            case FeatureSet::FeatureSet_iOS_GPUFamily3_v4:
-            case FeatureSet::FeatureSet_iOS_GPUFamily4_v2:
-                return false;
-            case FeatureSet::FeatureSet_macOS_GPUFamily1_v1:
-            case FeatureSet::FeatureSet_macOS_GPUFamily1_v2:
-            case FeatureSet::FeatureSet_macOS_ReadWriteTextureTier2:
-            case FeatureSet::FeatureSet_macOS_GPUFamily1_v3:
-            case FeatureSet::FeatureSet_macOS_GPUFamily1_v4:
-            case FeatureSet::FeatureSet_macOS_GPUFamily2_v1:
-                return true;
-            default:
-                break;
-        }
-        return false;
+#if (CC_TARGET_PLATFORM == CC_PLATFORM_MAC)
+        return MAX_TEXTURE_ARGUMENT_ENTRIES_MACOS;
+#else
+        return MAX_TEXTURE_ARGUMENT_ENTRIES_EMBEDDED;
+#endif
     }
 }
 
 DeviceInfoMTL::DeviceInfoMTL(id<MTLDevice> device)
 {
-   _deviceName = [device.name UTF8String];
-    
-#if (CC_TARGET_PLATFORM == CC_PLATFORM_IOS)
-    const FeatureSet minRequiredFeatureSet = FeatureSet::FeatureSet_iOS_GPUFamily1_v1;
-    const FeatureSet maxKnownFeatureSet = FeatureSet::FeatureSet_iOS_GPUFamily4_v2;
-#else
-    const FeatureSet minRequiredFeatureSet = FeatureSet::FeatureSet_macOS_GPUFamily1_v1;
-    const FeatureSet maxKnownFeatureSet = FeatureSet::FeatureSet_macOS_GPUFamily2_v1;
+    _deviceName = [device.name UTF8String];
+    _appleFamily = Utils::getAppleGPUFamily();
+
+    // An Apple Silicon Mac answers to both, and the Apple tier is the more specific of the
+    // two, so Mac2 is only consulted once the Apple series is ruled out.
+    _isMac2 = _appleFamily == NOT_AN_APPLE_GPU && [device supportsFamily:MTLGPUFamilyMac2];
+
+    if (_appleFamily != NOT_AN_APPLE_GPU)
+        _gpuFamilyName = "Apple" + std::to_string(_appleFamily);
+    else
+        _gpuFamilyName = _isMac2 ? "Mac2" : "Unknown";
+
+#if (CC_TARGET_PLATFORM == CC_PLATFORM_MAC)
     _isDepth24Stencil8PixelFormatSupported = [device isDepth24Stencil8PixelFormatSupported];
 #endif
-    
-    for (auto featureSet = maxKnownFeatureSet; featureSet >= minRequiredFeatureSet; --featureSet)
-    {
-        if ([device supportsFeatureSet:MTLFeatureSet(featureSet)])
-        {
-            _featureSet = featureSet;
-            break;
-        }
-    }
 }
 
 bool DeviceInfoMTL::init()
 {
-    _maxAttributes = getMaxVertexAttributes(_featureSet);
-    _maxSamplesAllowed = getMaxSamplerEntries(_featureSet);
-    _maxTextureUnits = getMaxTextureEntries(_featureSet);
-    _maxTextureSize = getMaxTextureWidthHeight(_featureSet);
-    
+    _maxAttributes = MAX_VERTEX_ATTRIBUTES;
+    _maxSamplesAllowed = MAX_SAMPLER_ARGUMENT_ENTRIES;
+    _maxTextureUnits = getMaxTextureEntries();
+    _maxTextureSize = getMaxTextureWidthHeight(_appleFamily, _isMac2);
+
     return true;
 }
 
@@ -411,7 +124,7 @@ const char* DeviceInfoMTL::getRenderer() const
 
 const char* DeviceInfoMTL::getVersion() const
 {
-    return featureSetToString(_featureSet);
+    return _gpuFamilyName.c_str();
 }
 
 const char* DeviceInfoMTL::getExtension() const
@@ -421,31 +134,33 @@ const char* DeviceInfoMTL::getExtension() const
 
 bool DeviceInfoMTL::checkForFeatureSupported(FeatureType feature)
 {
-    bool featureSupported = false;
+    // For a compressed format the honest answer is whether this backend can hand Metal a
+    // pixel format for it on this device, which is exactly what the texture path asks.
+    // Anything else would let the capability and the texture creation disagree.
+    auto supportsFormat = [](PixelFormat format) {
+        return Utils::toMTLPixelFormat(format) != MTLPixelFormatInvalid;
+    };
+
     switch (feature)
     {
     case FeatureType::PVRTC:
-        featureSupported = supportPVRTC(_featureSet);
-        break;
+        return supportsFormat(PixelFormat::PVRTC4);
     case FeatureType::ETC1:
-        featureSupported = supportEACETC(_featureSet);
-        break;
+        return supportsFormat(PixelFormat::ETC);
+    case FeatureType::ETC2:
+        return supportsFormat(PixelFormat::ETC2_RGBA);
     case FeatureType::S3TC:
-        featureSupported = supportS3TC(_featureSet);
-        break;
-    case FeatureType::IMG_FORMAT_BGRA8888:
-        featureSupported = true;
-        break;
-    case FeatureType::PACKED_DEPTH_STENCIL:
-        featureSupported = _isDepth24Stencil8PixelFormatSupported;
-        break;
+        return supportsFormat(PixelFormat::S3TC_DXT1);
     case FeatureType::ASTC:
-        featureSupported = supportASTC(_featureSet);
-        break;
+        // The backend has no ASTC mapping, so claiming hardware support would be a lie.
+        return false;
+    case FeatureType::IMG_FORMAT_BGRA8888:
+        return true;
+    case FeatureType::PACKED_DEPTH_STENCIL:
+        return _isDepth24Stencil8PixelFormatSupported;
     default:
-        break;
+        return false;
     }
-    return featureSupported;
 }
 
 CC_BACKEND_END
