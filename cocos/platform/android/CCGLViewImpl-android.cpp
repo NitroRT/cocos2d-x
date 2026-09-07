@@ -34,18 +34,8 @@ THE SOFTWARE.
 
 // <EGL/egl.h> exists since android 2.3
 #include <EGL/egl.h>
-PFNGLGENVERTEXARRAYSOESPROC glGenVertexArraysOESEXT = 0;
-PFNGLBINDVERTEXARRAYOESPROC glBindVertexArrayOESEXT = 0;
-PFNGLDELETEVERTEXARRAYSOESPROC glDeleteVertexArraysOESEXT = 0;
-
 #define DEFAULT_MARGIN_ANDROID				30.0f
 #define WIDE_SCREEN_ASPECT_RATIO_ANDROID	2.0f
-
-void initExtensions() {
-     glGenVertexArraysOESEXT = (PFNGLGENVERTEXARRAYSOESPROC)eglGetProcAddress("glGenVertexArraysOES");
-     glBindVertexArrayOESEXT = (PFNGLBINDVERTEXARRAYOESPROC)eglGetProcAddress("glBindVertexArrayOES");
-     glDeleteVertexArraysOESEXT = (PFNGLDELETEVERTEXARRAYSOESPROC)eglGetProcAddress("glDeleteVertexArraysOES");
-}
 
 NS_CC_BEGIN
 
@@ -84,7 +74,6 @@ GLViewImpl* GLViewImpl::createWithFullScreen(const std::string& viewName)
 
 GLViewImpl::GLViewImpl()
 {
-    initExtensions();
 }
 
 GLViewImpl::~GLViewImpl()
