@@ -75,7 +75,13 @@ public:
      * @return A MTLPixelFormat.
      */
     static MTLPixelFormat toMTLPixelFormat(PixelFormat textureFormat);
-    
+
+    /**
+     * Get the highest Apple GPU family the device supports, as a plain tier number.
+     * @return 1..N for an Apple GPU, 0 for anything else (today, an Intel Mac).
+     */
+    static int getAppleGPUFamily();
+
     /**
      * Generate a complete set of mipmaps in given texture.
      * @param texture Specifies a texture to generate mipmap.
