@@ -24,14 +24,15 @@
  THE SOFTWARE.
  ****************************************************************************/
 #import <Foundation/Foundation.h>
+#import <QuartzCore/CADisplayLink.h>
 
 @interface CCDirectorCaller : NSObject {
-        id displayLink;
-        int interval;
+        CADisplayLink* displayLink;
+        double interval;
         BOOL isAppActive;
     CFTimeInterval lastDisplayTime;
 }
-@property (readwrite) int interval;
+@property (readwrite) double interval;
 -(void) startMainLoop;
 -(void) stopMainLoop;
 -(void) doCaller: (id) sender;

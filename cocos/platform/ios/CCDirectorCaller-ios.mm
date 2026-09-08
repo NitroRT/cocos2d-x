@@ -28,19 +28,11 @@
 #import "platform/ios/CCDirectorCaller-ios.h"
 
 #import <Foundation/Foundation.h>
-#import <OpenGLES/EAGL.h>
+#import <UIKit/UIKit.h>
 
 #import "base/CCDirector.h"
-#import "platform/ios/CCEAGLView-ios.h"
 
 static id s_sharedDirectorCaller;
-
-@interface NSObject(CADisplayLink)
-+(id) displayLinkWithTarget: (id)arg1 selector:(SEL)arg2;
--(void) addToRunLoop: (id)arg1 forMode: (id)arg2;
--(void) setFrameInterval: (NSInteger)interval;
--(void) invalidate;
-@end
 
 @implementation CCDirectorCaller
 
@@ -73,7 +65,7 @@ static id s_sharedDirectorCaller;
         [nc addObserver:self selector:@selector(appDidBecomeActive) name:UIApplicationDidBecomeActiveNotification object:nil];
         [nc addObserver:self selector:@selector(appDidBecomeInactive) name:UIApplicationWillResignActiveNotification object:nil];
         
-        self.interval = 1;
+        self.interval = 1.0 / 60;
     }
     return self;
 }
@@ -81,7 +73,7 @@ static id s_sharedDirectorCaller;
 -(void) dealloc
 {
     [[NSNotificationCenter defaultCenter] removeObserver:self];
-    [displayLink release];
+    [self stopMainLoop];
     [super dealloc];
 }
 
@@ -104,36 +96,34 @@ static id s_sharedDirectorCaller;
 {
     // Director::setAnimationInterval() is called, we should invalidate it first
     [self stopMainLoop];
-    
-    displayLink = [NSClassFromString(@"CADisplayLink") displayLinkWithTarget:self selector:@selector(doCaller:)];
-    [displayLink setFrameInterval: self.interval];
+
+    displayLink = [[CADisplayLink displayLinkWithTarget:self selector:@selector(doCaller:)] retain];
+
+    const float framesPerSecond = (float)(1.0 / self.interval);
+    displayLink.preferredFrameRateRange = CAFrameRateRangeMake(framesPerSecond, framesPerSecond, framesPerSecond);
+
     [displayLink addToRunLoop:[NSRunLoop currentRunLoop] forMode:NSDefaultRunLoopMode];
 }
 
 -(void) stopMainLoop
 {
     [displayLink invalidate];
+    [displayLink release];
     displayLink = nil;
 }
 
 -(void) setAnimationInterval:(double)intervalNew
 {
-    // Director::setAnimationInterval() is called, we should invalidate it first
-    [self stopMainLoop];
-        
-    self.interval = 60.0 * intervalNew;
-        
-    displayLink = [NSClassFromString(@"CADisplayLink") displayLinkWithTarget:self selector:@selector(doCaller:)];
-    [displayLink setFrameInterval: self.interval];
-    [displayLink addToRunLoop:[NSRunLoop currentRunLoop] forMode:NSDefaultRunLoopMode];
+    self.interval = intervalNew;
+    [self startMainLoop];
 }
                       
 -(void) doCaller: (id) sender
 {
     if (isAppActive) {
         cocos2d::Director* director = cocos2d::Director::getInstance();
-        CFTimeInterval dt = ((CADisplayLink*)displayLink).timestamp - lastDisplayTime;
-        lastDisplayTime = ((CADisplayLink*)displayLink).timestamp;
+        CFTimeInterval dt = displayLink.timestamp - lastDisplayTime;
+        lastDisplayTime = displayLink.timestamp;
         director->mainLoop(dt);
     }
 }
@@ -145,7 +135,7 @@ static id s_sharedDirectorCaller;
     CGFloat clockFrequency = (CGFloat)timeBaseInfo.denom / (CGFloat)timeBaseInfo.numer;
     clockFrequency *= 1000000000.0;
     // convert absolute time to seconds and should minus one frame time interval
-    lastDisplayTime = (mach_absolute_time() / clockFrequency) - ((1.0 / 60) * self.interval);
+    lastDisplayTime = (mach_absolute_time() / clockFrequency) - self.interval;
 }
 
 @end
