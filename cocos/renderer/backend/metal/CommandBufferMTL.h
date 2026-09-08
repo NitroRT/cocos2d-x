@@ -178,7 +178,9 @@ private:
     void doSetTextures(bool isVertex) const;
     void setUniformBuffer() const;
     void afterDraw();
-    id<MTLRenderCommandEncoder> getRenderCommandEncoder(const RenderPassDescriptor& renderPassDescriptor);
+    id<MTLRenderCommandEncoder> ensureRenderCommandEncoder();
+    void foldPendingClearInto(RenderPassDescriptor& descriptor);
+    void materializePendingClear();
 
     id<MTLCommandBuffer> _mtlCommandBuffer = nil;
     id<MTLCommandQueue> _mtlCommandQueue = nil;
@@ -195,6 +197,9 @@ private:
     
     dispatch_semaphore_t _frameBoundarySemaphore;
     RenderPassDescriptor _prevRenderPassDescriptor;
+    RenderPassDescriptor _currentPassDescriptor;
+    RenderPassDescriptor _pendingClearDescriptor;
+    bool _hasPendingClear = false;
     NSAutoreleasePool* _autoReleasePool = nil;
 };
 

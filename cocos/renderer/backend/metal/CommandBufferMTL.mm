@@ -209,6 +209,20 @@ namespace
     inline int clamp(int value, int min, int max) {
         return std::min(max, std::max(min, value));
     }
+
+    bool sameTargets(const RenderPassDescriptor& a, const RenderPassDescriptor& b)
+    {
+        if (a.depthAttachmentTexture != b.depthAttachmentTexture ||
+            a.stencilAttachmentTexture != b.stencilAttachmentTexture)
+            return false;
+
+        for (int i = 0; i < MAX_COLOR_ATTCHMENT; ++i)
+        {
+            if (a.colorAttachmentsTexture[i] != b.colorAttachmentsTexture[i])
+                return false;
+        }
+        return true;
+    }
 }
 
 CommandBufferMTL::CommandBufferMTL(DeviceMTL* deviceMTL)
@@ -234,37 +248,88 @@ void CommandBufferMTL::beginFrame()
     BufferManager::beginFrame();
 }
 
-id<MTLRenderCommandEncoder> CommandBufferMTL::getRenderCommandEncoder(const RenderPassDescriptor& renderPassDescriptor)
+id<MTLRenderCommandEncoder> CommandBufferMTL::ensureRenderCommandEncoder()
 {
-    if(_mtlRenderEncoder != nil && _prevRenderPassDescriptor == renderPassDescriptor)
-    {
+    if (_mtlRenderEncoder != nil)
         return _mtlRenderEncoder;
-    }
-    else
+
+    if (_mtlCommandBuffer == nil)
+        return nil;
+
+    auto mtlDescriptor = toMTLRenderPassDescriptor(_currentPassDescriptor);
+    _renderTargetWidth = (unsigned int)mtlDescriptor.colorAttachments[0].texture.width;
+    _renderTargetHeight = (unsigned int)mtlDescriptor.colorAttachments[0].texture.height;
+    _mtlRenderEncoder = [[_mtlCommandBuffer renderCommandEncoderWithDescriptor:mtlDescriptor] retain];
+
+    return _mtlRenderEncoder;
+}
+
+void CommandBufferMTL::foldPendingClearInto(RenderPassDescriptor& descriptor)
+{
+    if (!_hasPendingClear)
+        return;
+
+    if (!sameTargets(_pendingClearDescriptor, descriptor))
     {
-        _prevRenderPassDescriptor = renderPassDescriptor;
+        materializePendingClear();
+        return;
     }
-    
-    if(_mtlRenderEncoder != nil)
+
+    if (_pendingClearDescriptor.needClearColor && descriptor.needColorAttachment)
+    {
+        descriptor.needClearColor = true;
+        descriptor.clearColorValue = _pendingClearDescriptor.clearColorValue;
+        _pendingClearDescriptor.needClearColor = false;
+    }
+
+    if (descriptor.needDepthStencilAttachment())
+    {
+        if (_pendingClearDescriptor.needClearDepth)
+        {
+            descriptor.needClearDepth = true;
+            descriptor.clearDepthValue = _pendingClearDescriptor.clearDepthValue;
+            _pendingClearDescriptor.needClearDepth = false;
+        }
+        if (_pendingClearDescriptor.needClearStencil)
+        {
+            descriptor.needClearStencil = true;
+            descriptor.clearStencilValue = _pendingClearDescriptor.clearStencilValue;
+            _pendingClearDescriptor.needClearStencil = false;
+        }
+    }
+
+    _hasPendingClear = _pendingClearDescriptor.needClearColor ||
+                       _pendingClearDescriptor.needClearDepth ||
+                       _pendingClearDescriptor.needClearStencil;
+}
+
+void CommandBufferMTL::materializePendingClear()
+{
+    if (!_hasPendingClear || _mtlCommandBuffer == nil)
+        return;
+
+    _hasPendingClear = false;
+
+    auto mtlDescriptor = toMTLRenderPassDescriptor(_pendingClearDescriptor);
+    id<MTLRenderCommandEncoder> encoder = [_mtlCommandBuffer renderCommandEncoderWithDescriptor:mtlDescriptor];
+    [encoder endEncoding];
+}
+
+void CommandBufferMTL::beginRenderPass(const RenderPassDescriptor& descriptor)
+{
+    if (_mtlRenderEncoder != nil && _prevRenderPassDescriptor == descriptor)
+        return;
+
+    if (_mtlRenderEncoder != nil)
     {
         [_mtlRenderEncoder endEncoding];
         [_mtlRenderEncoder release];
         _mtlRenderEncoder = nil;
     }
 
-    auto mtlDescriptor = toMTLRenderPassDescriptor(renderPassDescriptor);
-    _renderTargetWidth = (unsigned int)mtlDescriptor.colorAttachments[0].texture.width;
-    _renderTargetHeight = (unsigned int)mtlDescriptor.colorAttachments[0].texture.height;
-    id<MTLRenderCommandEncoder> mtlRenderEncoder = [_mtlCommandBuffer renderCommandEncoderWithDescriptor:mtlDescriptor];
-    [mtlRenderEncoder retain];
-    
-    return mtlRenderEncoder;
-}
-
-void CommandBufferMTL::beginRenderPass(const RenderPassDescriptor& descriptor)
-{
-    _mtlRenderEncoder = getRenderCommandEncoder(descriptor);
-//    [_mtlRenderEncoder setFrontFacingWinding:MTLWindingCounterClockwise];
+    _prevRenderPassDescriptor = descriptor;
+    _currentPassDescriptor = descriptor;
+    foldPendingClearInto(_currentPassDescriptor);
 }
 
 void CommandBufferMTL::setRenderPipeline(RenderPipeline* renderPipeline)
@@ -272,11 +337,13 @@ void CommandBufferMTL::setRenderPipeline(RenderPipeline* renderPipeline)
     CC_SAFE_RETAIN(renderPipeline);
     CC_SAFE_RELEASE(_renderPipelineMTL);
     _renderPipelineMTL = static_cast<RenderPipelineMTL*>(renderPipeline);
-    [_mtlRenderEncoder setRenderPipelineState:_renderPipelineMTL->getMTLRenderPipelineState()];
+    [ensureRenderCommandEncoder() setRenderPipelineState:_renderPipelineMTL->getMTLRenderPipelineState()];
 }
 
 void CommandBufferMTL::setViewport(int x, int y, unsigned int w, unsigned int h)
 {
+    ensureRenderCommandEncoder();
+
     MTLViewport viewport;
     viewport.originX = x;
     viewport.originY = (int)(_renderTargetHeight - y - h);
@@ -289,18 +356,18 @@ void CommandBufferMTL::setViewport(int x, int y, unsigned int w, unsigned int h)
 
 void CommandBufferMTL::setCullMode(CullMode mode)
 {
-    [_mtlRenderEncoder setCullMode:toMTLCullMode(mode)];
+    [ensureRenderCommandEncoder() setCullMode:toMTLCullMode(mode)];
 }
 
 void CommandBufferMTL::setWinding(Winding winding)
 {
-    [_mtlRenderEncoder setFrontFacingWinding:toMTLWinding(winding)];
+    [ensureRenderCommandEncoder() setFrontFacingWinding:toMTLWinding(winding)];
 }
 
 void CommandBufferMTL::setVertexBuffer(Buffer* buffer)
 {
     // Vertex buffer is bound in index 0.
-    [_mtlRenderEncoder setVertexBuffer:static_cast<BufferMTL*>(buffer)->getMTLBuffer()
+    [ensureRenderCommandEncoder() setVertexBuffer:static_cast<BufferMTL*>(buffer)->getMTLBuffer()
                                 offset:0
                                atIndex:0];
 }
@@ -324,6 +391,7 @@ void CommandBufferMTL::setIndexBuffer(Buffer* buffer)
 
 void CommandBufferMTL::drawArrays(PrimitiveType primitiveType, std::size_t start,  std::size_t count)
 {
+    ensureRenderCommandEncoder();
     prepareDrawing();
     [_mtlRenderEncoder drawPrimitives:toMTLPrimitive(primitiveType)
                           vertexStart:start
@@ -332,6 +400,7 @@ void CommandBufferMTL::drawArrays(PrimitiveType primitiveType, std::size_t start
 
 void CommandBufferMTL::drawElements(PrimitiveType primitiveType, IndexFormat indexType, std::size_t count, std::size_t offset)
 {
+    ensureRenderCommandEncoder();
     prepareDrawing();
     [_mtlRenderEncoder drawIndexedPrimitives:toMTLPrimitive(primitiveType)
                                   indexCount:count
@@ -343,6 +412,15 @@ void CommandBufferMTL::drawElements(PrimitiveType primitiveType, IndexFormat ind
 
 void CommandBufferMTL::endRenderPass()
 {
+    if (_mtlRenderEncoder == nil &&
+        (_currentPassDescriptor.needClearColor ||
+         _currentPassDescriptor.needClearDepth ||
+         _currentPassDescriptor.needClearStencil))
+    {
+        _pendingClearDescriptor = _currentPassDescriptor;
+        _hasPendingClear = true;
+    }
+
     afterDraw();
 }
 
@@ -359,6 +437,13 @@ void CommandBufferMTL::endFrame()
     [_mtlRenderEncoder endEncoding];
     [_mtlRenderEncoder release];
     _mtlRenderEncoder = nil;
+
+    _pendingClearDescriptor.needClearDepth = false;
+    _pendingClearDescriptor.needClearStencil = false;
+    _pendingClearDescriptor.depthTestEnabled = false;
+    _pendingClearDescriptor.stencilTestEnabled = false;
+    _hasPendingClear = _pendingClearDescriptor.needClearColor;
+    materializePendingClear();
     
     [_mtlCommandBuffer presentDrawable:DeviceMTL::getCurrentDrawable()];
     _drawableTexture = DeviceMTL::getCurrentDrawable().texture;
@@ -485,6 +570,8 @@ void CommandBufferMTL::setLineWidth(float lineWidth)
 
 void CommandBufferMTL::setScissorRect(bool isEnabled, float x, float y, float width, float height)
 {
+    ensureRenderCommandEncoder();
+
     MTLScissorRect scissorRect;
     if(isEnabled)
     {
