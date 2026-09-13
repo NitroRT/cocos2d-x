@@ -30,6 +30,9 @@
 #include <queue>
 #include "platform/CCFileUtils.h"
 #include "base/ccUtils.h"
+#include "base/CCDirector.h"
+#include "base/CCEventDispatcher.h"
+#include "base/CCEventListenerCustom.h"
 
 #if CC_TARGET_PLATFORM == CC_PLATFORM_ANDROID
 #include "audio/android/AudioEngine-inl.h"
@@ -67,6 +70,7 @@ AudioEngineImpl* AudioEngine::_audioEngineImpl = nullptr;
 
 AudioEngine::AudioEngineThreadPool* AudioEngine::s_threadPool = nullptr;
 bool AudioEngine::_isEnabled = true;
+EventListenerCustom* AudioEngine::s_resetDirectorListener = nullptr;
 
 AudioEngine::AudioInfo::AudioInfo()
 : profileHelper(nullptr)
@@ -152,6 +156,8 @@ private:
 
 void AudioEngine::end()
 {
+    dropResetDirectorListener();
+
     delete s_threadPool;
     s_threadPool = nullptr;
 
@@ -180,6 +186,17 @@ bool AudioEngine::lazyInit()
         s_threadPool = new (std::nothrow) AudioEngineThreadPool();
     }
 #endif
+
+    if ( s_resetDirectorListener == nullptr )
+    {
+        s_resetDirectorListener = Director::getInstance()->getEventDispatcher()->addCustomEventListener(
+            Director::EVENT_RESET,
+            []( EventCustom* )
+        {
+            dropResetDirectorListener();
+            AudioEngine::end();
+        } );
+    }
 
     return true;
 }
@@ -348,6 +365,15 @@ void AudioEngine::remove(int audioID)
         _audioPathIDMap[it->second.filePath].remove(audioID);
         _audioIDInfoMap.erase(it);
     }
+}
+
+void AudioEngine::dropResetDirectorListener()
+{
+    if (s_resetDirectorListener == nullptr)
+        return;
+
+    Director::getInstance()->getEventDispatcher()->removeEventListener(s_resetDirectorListener);
+    s_resetDirectorListener = nullptr;
 }
 
 void AudioEngine::stopAll()

@@ -74,6 +74,7 @@ public:
 };
 
 class AudioEngineImpl;
+class EventListenerCustom;
 
 /**
  * @class AudioEngine
@@ -308,6 +309,7 @@ public:
 protected:
     static void addTask(const std::function<void()>& task);
     static void remove(int audioID);
+    static void dropResetDirectorListener();
     
     struct ProfileHelper
     {
@@ -360,6 +362,8 @@ protected:
 
     class AudioEngineThreadPool;
     static AudioEngineThreadPool* s_threadPool;
+
+    static EventListenerCustom* s_resetDirectorListener;
     
     static bool _isEnabled;
     
