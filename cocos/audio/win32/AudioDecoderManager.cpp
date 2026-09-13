@@ -28,6 +28,7 @@ THE SOFTWARE.
 #include "audio/win32/AudioDecoderManager.h"
 #include "audio/win32/AudioDecoderOgg.h"
 #include "audio/win32/AudioDecoderMp3.h"
+#include "audio/win32/AudioDecoderWav.h"
 #include "audio/win32/AudioMacros.h"
 #include "platform/CCFileUtils.h"
 #include "base/CCConsole.h"
@@ -57,6 +58,10 @@ AudioDecoder* AudioDecoderManager::createDecoder(const char* path)
     else if (suffix == ".mp3")
     {
         return new (std::nothrow) AudioDecoderMp3();
+    }
+    else if (suffix == ".wav")
+    {
+        return new (std::nothrow) AudioDecoderWav();
     }
 
     return nullptr;
