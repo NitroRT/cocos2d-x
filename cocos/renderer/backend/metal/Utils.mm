@@ -222,7 +222,7 @@ void Utils::resizeDefaultAttachmentTexture(std::size_t width, std::size_t height
 {
     [backend::DeviceMTL::getCAMetalLayer() setDrawableSize:CGSizeMake(width, height)];
     [_defaultDepthStencilAttachmentTexture release];
-    _defaultDepthStencilAttachmentTexture = nil;
+    _defaultDepthStencilAttachmentTexture = Utils::createDepthStencilAttachmentTexture();
 }
 
 id<MTLTexture> Utils::createDepthStencilAttachmentTexture()
