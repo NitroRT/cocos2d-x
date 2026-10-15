@@ -52,8 +52,13 @@ void ccMessageBox(const char * msg, const char * title)
                                    handler:^(UIAlertAction * action) {}];
 
     [alertController addAction:defaultAction];
-    auto rootViewController = [UIApplication sharedApplication].windows[0].rootViewController;
-    [rootViewController presentViewController:alertController animated:YES completion:nil];
+    UIWindow* window = nil;
+    if (auto glview = Director::getInstance()->getOpenGLView())
+        window = ((__bridge UIView *)glview->getEAGLView()).window;
+    UIViewController* presenter = window.rootViewController;
+    while (presenter.presentedViewController)
+        presenter = presenter.presentedViewController;
+    [presenter presentViewController:alertController animated:YES completion:nil];
 #endif
 
 }
