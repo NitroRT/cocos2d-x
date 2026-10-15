@@ -292,8 +292,19 @@
                                                           completionHandler();
                                                       }]];
 
-    auto rootViewController = [UIApplication sharedApplication].windows[0].rootViewController;
-    [rootViewController presentViewController:alertController animated:YES completion:^{}];
+    UIWindow *window = nil;
+    if (auto glview = cocos2d::Director::getInstance()->getOpenGLView())
+        window = ((__bridge UIView *)glview->getEAGLView()).window;
+    UIViewController *presenter = window.rootViewController;
+    while (presenter.presentedViewController)
+        presenter = presenter.presentedViewController;
+    // WebKit throws if the completion handler is released without being called
+    if (!presenter)
+    {
+        completionHandler();
+        return;
+    }
+    [presenter presentViewController:alertController animated:YES completion:^{}];
 }
 
 @end

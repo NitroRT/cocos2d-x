@@ -244,7 +244,10 @@ static CCAccelerometerDispatcher* s_pAccelerometerDispatcher;
     UIInterfaceOrientation orientation;
     if (@available(iOS 13.0, *))
     {
-        orientation = [[[UIApplication sharedApplication].windows[0] windowScene] interfaceOrientation];
+        UIWindowScene *scene = nil;
+        if (auto glview = cocos2d::Director::getInstance()->getOpenGLView())
+            scene = ((__bridge UIView *)glview->getEAGLView()).window.windowScene;
+        orientation = scene ? scene.interfaceOrientation : UIInterfaceOrientationPortrait;
     }
     else
     {

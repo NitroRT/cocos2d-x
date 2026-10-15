@@ -29,9 +29,20 @@
 #import "AppDelegate.h"
 #import "RootViewController.h"
 
-@implementation AppController
+@interface AppController ()
+- (UIWindow *)createWindowForScene:(UIWindowScene *)scene;
+- (void)sceneDidEnterBackground;
+- (void)sceneWillEnterForeground;
+@end
 
-@synthesize window;
+@interface SceneDelegate : UIResponder <UIWindowSceneDelegate>
+@end
+
+@implementation AppController
+{
+    BOOL _started;
+    BOOL _inBackground;
+}
 
 #pragma mark -
 #pragma mark Application lifecycle
@@ -47,77 +58,57 @@ static AppDelegate s_sharedApplication;
     app->initGLContextAttrs();
     cocos2d::GLViewImpl::convertAttrs();
     
-    // Override point for customization after application launch.
-
-    // Add the view controller's view to the window and display.
-    window = [[UIWindow alloc] initWithFrame: [[UIScreen mainScreen] bounds]];
-
-    // Use RootViewController to manage CCEAGLView
-    _viewController = [[RootViewController alloc]init];
-    _viewController.edgesForExtendedLayout = UIRectEdgeTop | UIRectEdgeBottom;
-    _viewController.extendedLayoutIncludesOpaqueBars = YES;
-    
-
-    // Set RootViewController to window
-    if ( [[UIDevice currentDevice].systemVersion floatValue] < 6.0)
-    {
-        // warning: addSubView doesn't work on iOS6
-        [window addSubview: _viewController.view];
-    }
-    else
-    {
-        // use this method on ios6
-        [window setRootViewController:_viewController];
-    }
-
-    [window makeKeyAndVisible];
-    
     //Launching the app with the arguments -NSAllowsDefaultLineBreakStrategy NO to force back to the old behavior.
     if ( [[UIDevice currentDevice].systemVersion floatValue] >= 13.0f)
     {
         [[NSUserDefaults standardUserDefaults] setBool:NO forKey:@"NSAllowsDefaultLineBreakStrategy"];
     }
-    
-    // IMPORTANT: Setting the GLView should be done after creating the RootViewController
-    cocos2d::GLView *glview = cocos2d::GLViewImpl::createWithEAGLView((__bridge void *)_viewController.view);
-    cocos2d::Director::getInstance()->setOpenGLView(glview);
-    
-    //run the cocos2d-x game scene
-    app->run();
 
     return YES;
 }
 
+- (UIWindow *)createWindowForScene:(UIWindowScene *)scene {
+    UIWindow *window = [[UIWindow alloc] initWithWindowScene:scene];
 
-- (void)applicationWillResignActive:(UIApplication *)application {
-    /*
-     Sent when the application is about to move from active to inactive state. This can occur for certain types of temporary interruptions (such as an incoming phone call or SMS message) or when the user quits the application and it begins the transition to the background state.
-     Use this method to pause ongoing tasks, disable timers, and throttle down OpenGL ES frame rates. Games should use this method to pause the game.
-     */
-    // We don't need to call this method any more. It will interrupt user defined game pause&resume logic
-    /* cocos2d::Director::getInstance()->pause(); */
+    // The scene may be discarded in background and connected again later: the game keeps running
+    // and only moves into the new window.
+    if (!_viewController)
+    {
+        // Use RootViewController to manage CCEAGLView
+        _viewController = [[RootViewController alloc]init];
+        _viewController.edgesForExtendedLayout = UIRectEdgeTop | UIRectEdgeBottom;
+        _viewController.extendedLayoutIncludesOpaqueBars = YES;
+    }
+
+    [window setRootViewController:_viewController];
+    [window makeKeyAndVisible];
+
+    if (!_started)
+    {
+        _started = YES;
+
+        // IMPORTANT: Setting the GLView should be done after creating the RootViewController
+        cocos2d::GLView *glview = cocos2d::GLViewImpl::createWithEAGLView((__bridge void *)_viewController.view);
+        cocos2d::Director::getInstance()->setOpenGLView(glview);
+
+        //run the cocos2d-x game scene
+        cocos2d::Application::getInstance()->run();
+    }
+
+    return window;
 }
 
-- (void)applicationDidBecomeActive:(UIApplication *)application {
-    /*
-     Restart any tasks that were paused (or not yet started) while the application was inactive. If the application was previously in the background, optionally refresh the user interface.
-     */
-    // We don't need to call this method any more. It will interrupt user defined game pause&resume logic
-    /* cocos2d::Director::getInstance()->resume(); */
-}
-
-- (void)applicationDidEnterBackground:(UIApplication *)application {
-    /*
-     Use this method to release shared resources, save user data, invalidate timers, and store enough application state information to restore your application to its current state in case it is terminated later. 
-     If your application supports background execution, called instead of applicationWillTerminate: when the user quits.
-     */
+- (void)sceneDidEnterBackground {
+    _inBackground = YES;
     cocos2d::Application::getInstance()->applicationDidEnterBackground();
 }
 
-- (void)applicationWillEnterForeground:(UIApplication *)application {
-    /*
-     Called as part of  transition from the background to the inactive state: here you can undo many of the changes made on entering the background.
-     */
+- (void)sceneWillEnterForeground {
+    // Unlike applicationWillEnterForeground, this also arrives on cold start, when there is nothing to resume.
+    if (!_inBackground)
+        return;
+
+    _inBackground = NO;
     cocos2d::Application::getInstance()->applicationWillEnterForeground();
 }
 
@@ -142,11 +133,53 @@ static AppDelegate s_sharedApplication;
 #if __has_feature(objc_arc)
 #else
 - (void)dealloc {
-    [window release];
     [_viewController release];
     [super dealloc];
 }
 #endif
 
+
+@end
+
+
+@implementation SceneDelegate
+
+@synthesize window;
+
+- (AppController *)appController {
+    return (AppController *)[UIApplication sharedApplication].delegate;
+}
+
+- (void)scene:(UIScene *)scene willConnectToSession:(UISceneSession *)session options:(UISceneConnectionOptions *)connectionOptions {
+    if (![scene isKindOfClass:[UIWindowScene class]])
+        return;
+
+    UIWindow *created = [[self appController] createWindowForScene:(UIWindowScene *)scene];
+    self.window = created;
+#if !__has_feature(objc_arc)
+    [created release];
+#endif
+}
+
+- (void)sceneDidDisconnect:(UIScene *)scene {
+    self.window.rootViewController = nil;
+    self.window = nil;
+}
+
+- (void)sceneDidEnterBackground:(UIScene *)scene {
+    [[self appController] sceneDidEnterBackground];
+}
+
+- (void)sceneWillEnterForeground:(UIScene *)scene {
+    [[self appController] sceneWillEnterForeground];
+}
+
+#if __has_feature(objc_arc)
+#else
+- (void)dealloc {
+    [window release];
+    [super dealloc];
+}
+#endif
 
 @end
