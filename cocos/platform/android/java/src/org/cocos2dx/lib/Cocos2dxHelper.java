@@ -55,6 +55,7 @@ import android.view.KeyCharacterMap;
 import android.view.KeyEvent;
 import android.view.ViewConfiguration;
 import android.view.Window;
+import android.view.WindowInsets;
 import android.view.WindowManager;
 
 import com.android.vending.expansion.zipfile.APKExpansionSupport;
@@ -675,7 +676,12 @@ public class Cocos2dxHelper {
         final int[] safeInsets = new int[]{0, 0, 0, 0};
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
             Window cocosWindow = sActivity.getWindow();
-            DisplayCutout displayCutout = cocosWindow.getDecorView().getRootWindowInsets().getDisplayCutout();
+            WindowInsets rootInsets = cocosWindow.getDecorView().getRootWindowInsets();
+            if (rootInsets == null)
+            {
+                return safeInsets;
+            }
+            DisplayCutout displayCutout = rootInsets.getDisplayCutout();
             // Judge whether it is cutouts (aka notch) screen phone by judge cutout equle to null
             if (displayCutout != null) {
                 List<Rect> rects = displayCutout.getBoundingRects();
