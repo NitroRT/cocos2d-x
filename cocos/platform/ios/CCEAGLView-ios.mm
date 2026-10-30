@@ -70,6 +70,7 @@ Copyright (C) 2008 Apple Inc. All Rights Reserved.
 #import "base/CCIMEDispatcher.h"
 #import "renderer/backend/metal/DeviceMTL.h"
 #import "platform/ios/CCInputView-ios.h"
+#import "platform/ios/CCGLViewImpl-ios.h"
 #include "renderer/backend/metal/Utils.h"
 
 //CLASS IMPLEMENTATIONS:
@@ -198,11 +199,27 @@ Copyright (C) 2008 Apple Inc. All Rights Reserved.
 
     cocos2d::backend::Utils::resizeDefaultAttachmentTexture(size_.width, size_.height);
 
+    auto glview = static_cast<cocos2d::GLViewImpl*>(cocos2d::Director::getInstance()->getOpenGLView());
+    if (glview)
+        glview->onViewLayoutChanged();
+
     // Avoid flicker. Issue #350
     if ([NSThread isMainThread])
     {
         cocos2d::Director::getInstance()->drawScene();
     }
+}
+
+- (void) safeAreaInsetsDidChange
+{
+    [super safeAreaInsetsDidChange];
+
+    if (!cocos2d::Director::getInstance()->isValid())
+        return;
+
+    auto glview = static_cast<cocos2d::GLViewImpl*>(cocos2d::Director::getInstance()->getOpenGLView());
+    if (glview)
+        glview->onViewLayoutChanged();
 }
 
 - (void) swapBuffers

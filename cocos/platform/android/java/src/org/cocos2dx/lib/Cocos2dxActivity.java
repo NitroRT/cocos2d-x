@@ -40,9 +40,11 @@ import android.os.Message;
 import android.os.PowerManager;
 import android.preference.PreferenceManager.OnActivityResultListener;
 import android.util.Log;
+import android.view.DisplayCutout;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.Window;
+import android.view.WindowInsets;
 import android.view.WindowManager;
 import android.window.OnBackInvokedCallback;
 import android.window.OnBackInvokedDispatcher;
@@ -53,6 +55,8 @@ import javax.microedition.khronos.egl.EGL10;
 import javax.microedition.khronos.egl.EGLConfig;
 import javax.microedition.khronos.egl.EGLDisplay;
 import javax.microedition.khronos.egl.EGLContext;
+
+import java.util.Arrays;
 
 public abstract class Cocos2dxActivity extends Activity implements Cocos2dxHelperListener {
     // ===========================================================
@@ -77,6 +81,7 @@ public abstract class Cocos2dxActivity extends Activity implements Cocos2dxHelpe
     private boolean gainAudioFocus = false;
     private boolean paused = true;
     private PredictiveBackBridge mPredictiveBack = null;
+    private int[] mLastCutoutInsets = null;
 
     public Cocos2dxGLSurfaceView getGLSurfaceView(){
         return  mGLSurfaceView;
@@ -344,7 +349,50 @@ public abstract class Cocos2dxActivity extends Activity implements Cocos2dxHelpe
 
         // Set framelayout as the content view
         setContentView(mFrameLayout);
+
+        watchSafeAreaInsets();
     }
+
+    @TargetApi(Build.VERSION_CODES.P)
+    private void watchSafeAreaInsets()
+    {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.P)
+        {
+            return;
+        }
+
+        mFrameLayout.setOnApplyWindowInsetsListener(new View.OnApplyWindowInsetsListener()
+        {
+            @Override
+            public WindowInsets onApplyWindowInsets(View view, WindowInsets insets)
+            {
+                int[] cutoutInsets = new int[]{0, 0, 0, 0};
+                DisplayCutout cutout = insets.getDisplayCutout();
+                if (cutout != null)
+                {
+                    cutoutInsets = new int[]{cutout.getSafeInsetBottom(), cutout.getSafeInsetLeft(),
+                                             cutout.getSafeInsetRight(), cutout.getSafeInsetTop()};
+                }
+
+                if (!Arrays.equals(cutoutInsets, mLastCutoutInsets))
+                {
+                    mLastCutoutInsets = cutoutInsets;
+                    mGLSurfaceView.queueEvent(new Runnable()
+                    {
+                        @Override
+                        public void run()
+                        {
+                            nativeOnSafeAreaChanged();
+                        }
+                    });
+                }
+
+                return view.onApplyWindowInsets(insets);
+            }
+        });
+    }
+
+    private static native void nativeOnSafeAreaChanged();
 
     
     public Cocos2dxGLSurfaceView onCreateView() {

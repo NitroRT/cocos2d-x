@@ -123,7 +123,20 @@ JNIEXPORT void Java_org_cocos2dx_lib_Cocos2dxAudioFocusManager_nativeOnAudioFocu
 
 JNIEXPORT void Java_org_cocos2dx_lib_Cocos2dxRenderer_nativeOnSurfaceChanged(JNIEnv*  env, jobject thiz, jint w, jint h)
 {
-    cocos2d::Application::getInstance()->applicationScreenSizeChanged(w, h);
+    auto glview = static_cast<cocos2d::GLViewImpl*>(cocos2d::Director::getInstance()->getOpenGLView());
+    if (glview)
+    {
+        glview->onSurfaceChanged(w, h);
+    }
+}
+
+JNIEXPORT void Java_org_cocos2dx_lib_Cocos2dxActivity_nativeOnSafeAreaChanged(JNIEnv* env, jclass clazz)
+{
+    auto glview = static_cast<cocos2d::GLViewImpl*>(cocos2d::Director::getInstance()->getOpenGLView());
+    if (glview)
+    {
+        glview->onSafeAreaInsetsChanged();
+    }
 }
 
 }

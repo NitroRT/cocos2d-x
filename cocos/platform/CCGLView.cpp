@@ -32,6 +32,7 @@ THE SOFTWARE.
 #include "2d/CCCamera.h"
 #include "2d/CCScene.h"
 #include "renderer/CCRenderer.h"
+#include "platform/CCApplication.h"
 
 NS_CC_BEGIN
 
@@ -182,7 +183,8 @@ void GLView::setDesignResolutionSize(float width, float height, ResolutionPolicy
     _designResolutionSize.setSize(width, height);
     _resolutionPolicy = resolutionPolicy;
     
-    updateDesignResolutionSize();
+    if (!_isResolutionUpdateLocked)
+        updateDesignResolutionSize();
  }
 
 const Size& GLView::getDesignResolutionSize() const 
@@ -203,6 +205,32 @@ void GLView::setFrameSize(float width, float height)
     // only update the designResolution if it wasn't previously set
     if (_designResolutionSize.equals(Size::ZERO))
         _designResolutionSize = _screenSize;
+}
+
+void GLView::handleScreenSizeChanged(float width, float height)
+{
+    if (_screenSize.equals(Size(width, height)))
+        return;
+
+    setFrameSize(width, height);
+
+#if (CC_TARGET_PLATFORM == CC_PLATFORM_IOS) || (CC_TARGET_PLATFORM == CC_PLATFORM_ANDROID)
+    _isResolutionUpdateLocked = true;
+    Application::getInstance()->applicationScreenSizeChanged((int)width, (int)height);
+    _isResolutionUpdateLocked = false;
+
+    updateDesignResolutionSize();
+    Application::getInstance()->applicationScreenSizeDidChange();
+#else
+    updateDesignResolutionSize();
+#endif
+}
+
+void GLView::handleSafeAreaChanged()
+{
+#if (CC_TARGET_PLATFORM == CC_PLATFORM_IOS) || (CC_TARGET_PLATFORM == CC_PLATFORM_ANDROID)
+    Application::getInstance()->applicationScreenSizeDidChange();
+#endif
 }
 
 Rect GLView::getVisibleRect() const

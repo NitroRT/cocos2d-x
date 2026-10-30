@@ -137,7 +137,13 @@ bool Application::openURL(const std::string &url)
     }
 }
 
-void Application::applicationScreenSizeChanged(int newWidth, int newHeight) {
+void Application::applicationScreenSizeChanged(int newWidth, int newHeight) 
+{
+
+}
+
+void Application::applicationScreenSizeDidChange() 
+{
 
 }
 

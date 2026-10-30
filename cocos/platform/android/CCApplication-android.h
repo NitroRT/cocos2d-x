@@ -99,6 +99,12 @@ public:
     */
     virtual void applicationScreenSizeChanged(int newWidth, int newHeight);
 
+    /**
+    @brief  This function will be called after the new screen size is applied to the design resolution,
+            and also when only the safe area has changed.
+    */
+    virtual void applicationScreenSizeDidChange();
+
 protected:
     static Application * sm_pSharedApplication;
 };
