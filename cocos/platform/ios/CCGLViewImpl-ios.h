@@ -74,6 +74,9 @@ public:
 
     virtual Rect getSafeAreaRect() const override;
 
+    /** called by the CCEAGLView when its bounds or safe area insets change */
+    void onViewLayoutChanged();
+
 protected:
     GLViewImpl();
     virtual ~GLViewImpl();
@@ -84,6 +87,7 @@ protected:
 
     // the objective-c CCEAGLView instance
     void *_eaglview;
+    Rect _lastSafeAreaRect;
 };
 
 NS_CC_END

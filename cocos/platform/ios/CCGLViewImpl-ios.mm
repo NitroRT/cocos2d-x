@@ -228,6 +228,37 @@ void GLViewImpl::setIMEKeyboardState(bool open)
     }
 }
 
+void GLViewImpl::onViewLayoutChanged()
+{
+    CCEAGLView *eaglview = (CCEAGLView*) _eaglview;
+    const Size size([eaglview getWidth], [eaglview getHeight]);
+
+    const std::string key = "GLViewSafeAreaChanged";
+    auto scheduler = Director::getInstance()->getScheduler();
+    scheduler->unschedule(key, this);
+
+    if (!size.equals(_screenSize))
+    {
+        handleScreenSizeChanged(size.width, size.height);
+        _lastSafeAreaRect = getSafeAreaRect();
+        return;
+    }
+
+    if (getSafeAreaRect().equals(_lastSafeAreaRect))
+        return;
+
+    // The safe area may change alone right before the size does, so wait for it to settle.
+    scheduler->schedule([this](float)
+    {
+        const Rect safeArea = getSafeAreaRect();
+        if (safeArea.equals(_lastSafeAreaRect))
+            return;
+
+        _lastSafeAreaRect = safeArea;
+        handleSafeAreaChanged();
+    }, this, 0.f, 0, 0.1f, false, key);
+}
+
 Rect GLViewImpl::getSafeAreaRect() const
 {
     CCEAGLView *eaglview = (CCEAGLView*) _eaglview;

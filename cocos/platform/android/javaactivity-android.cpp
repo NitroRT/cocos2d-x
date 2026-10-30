@@ -123,7 +123,9 @@ JNIEXPORT void Java_org_cocos2dx_lib_Cocos2dxAudioFocusManager_nativeOnAudioFocu
 
 JNIEXPORT void Java_org_cocos2dx_lib_Cocos2dxRenderer_nativeOnSurfaceChanged(JNIEnv*  env, jobject thiz, jint w, jint h)
 {
-    cocos2d::Application::getInstance()->applicationScreenSizeChanged(w, h);
+    auto glview = cocos2d::Director::getInstance()->getOpenGLView();
+    if (glview)
+        glview->handleScreenSizeChanged(w, h);
 }
 
 }

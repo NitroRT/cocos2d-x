@@ -174,6 +174,19 @@ public:
      */
     virtual void setFrameSize(float width, float height);
 
+    /**
+     * Apply a new frame size at runtime.
+     * Application::applicationScreenSizeChanged may set a new design resolution, it is applied once
+     * afterwards and Application::applicationScreenSizeDidChange is called. Does nothing if the size is unchanged.
+     *
+     * @param width The width of the frame size.
+     * @param height The height of the frame size.
+     */
+    void handleScreenSizeChanged(float width, float height);
+
+    /** Notify the application when only the safe area has changed. */
+    void handleSafeAreaChanged();
+
     /** Set zoom factor for frame. This methods are for
      * debugging big resolution (e.g.new ipad) app on desktop.
      * 
@@ -439,6 +452,7 @@ protected:
     float _scaleX;
     float _scaleY;
     ResolutionPolicy _resolutionPolicy;
+    bool _isResolutionUpdateLocked = false;
 };
 
 // end of platform group

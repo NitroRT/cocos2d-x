@@ -123,7 +123,13 @@ bool Application::openURL(const std::string &url)
     return JniHelper::callStaticBooleanMethod(helperClassName, "openURL", url);
 }
 
-void Application::applicationScreenSizeChanged(int newWidth, int newHeight) {
+void Application::applicationScreenSizeChanged(int newWidth, int newHeight) 
+{
+
+}
+
+void Application::applicationScreenSizeDidChange() 
+{
 
 }
 
