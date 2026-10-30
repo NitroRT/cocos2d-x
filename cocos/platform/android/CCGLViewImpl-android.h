@@ -46,12 +46,17 @@ public:
     void setIMEKeyboardState(bool bOpen) override;
     virtual Rect getSafeAreaRect() const override;
 
+    void onSurfaceChanged(float width, float height);
+    void onSafeAreaInsetsChanged();
+
 protected:
     GLViewImpl();
     virtual ~GLViewImpl();
 
     bool initWithRect(const std::string& viewName, Rect rect, float frameZoomFactor);
     bool initWithFullScreen(const std::string& viewName);
+
+    Rect _lastSafeAreaRect;
 };
 
 NS_CC_END

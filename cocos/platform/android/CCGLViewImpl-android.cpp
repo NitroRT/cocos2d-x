@@ -25,6 +25,7 @@ THE SOFTWARE.
 ****************************************************************************/
 #include "platform/android/CCGLViewImpl-android.h"
 #include "base/CCDirector.h"
+#include "base/CCScheduler.h"
 #include "base/ccMacros.h"
 #include "platform/android/jni/JniHelper.h"
 #include "CCGL.h"
@@ -113,6 +114,44 @@ void GLViewImpl::setIMEKeyboardState(bool bOpen)
     } else {
         JniHelper::callStaticVoidMethod("org.cocos2dx.lib.Cocos2dxGLSurfaceView", "closeIMEKeyboard");
     }
+}
+
+namespace
+{
+    const std::string kSafeAreaChangedKey = "GLViewSafeAreaChanged";
+}
+
+void GLViewImpl::onSurfaceChanged(float width, float height)
+{
+    if (_screenSize.equals(Size(width, height)))
+    {
+        return;
+    }
+
+    Director::getInstance()->getScheduler()->unschedule(kSafeAreaChangedKey, this);
+    handleScreenSizeChanged(width, height);
+    _lastSafeAreaRect = getSafeAreaRect();
+}
+
+void GLViewImpl::onSafeAreaInsetsChanged()
+{
+    auto scheduler = Director::getInstance()->getScheduler();
+    scheduler->unschedule(kSafeAreaChangedKey, this);
+
+    // The insets may change right before the surface size does, so wait for it to settle.
+    scheduler->schedule(
+        [this](float)
+        {
+            const Rect safeArea = getSafeAreaRect();
+            if (safeArea.equals(_lastSafeAreaRect))
+            {
+                return;
+            }
+
+            _lastSafeAreaRect = safeArea;
+            handleSafeAreaChanged();
+        },
+        this, 0.f, 0, 0.1f, false, kSafeAreaChangedKey);
 }
 
 Rect GLViewImpl::getSafeAreaRect() const {
