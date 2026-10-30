@@ -332,6 +332,11 @@ SNDFILE *sf_open_read(const char *path, SF_INFO *info, snd_callbacks* cb, void* 
             }
         }
         remaining -= chunkSize;
+        if ((chunkSize & 1) && remaining > 0)
+        {
+            handle->callback.seek(stream, 1, SEEK_CUR);
+            remaining -= 1;
+        }
     }
     if (remaining > 0) {
 #ifdef HAVE_STDERR
