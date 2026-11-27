@@ -41,9 +41,6 @@ class CocosFileList:
         self.inludeConfig=[]
         self.rootDir = ""
         self.fileList_com=[]
-        self.fileList_lua=[]
-
-        self.luaPath = ["cocos/scripting/lua-bindings", "external/lua", "tools/bindings-generator", "tools/tolua"]
 
     def readIngoreFile(self, fileName):
         """
@@ -88,16 +85,7 @@ class CocosFileList:
                       self.__bInclude(item) or
                       self.__bInclude("%s/" %item)
                     ):
-                        foundLuaModule = False
-                        for luaPath in self.luaPath:
-                            if relativePath.upper().find(luaPath.upper()) == 0:
-                                foundLuaModule = True
-                                break
-
-                        if foundLuaModule:
-                            self.fileList_lua.append("%s/" %relativePath)
-                        else:
-                            self.fileList_com.append("%s/" %relativePath)
+                        self.fileList_com.append("%s/" %relativePath)
                         self.__parseFileList(path)
                         continue
                 if (
@@ -119,16 +107,7 @@ class CocosFileList:
                         ):
                             continue
                 # print(relativePath)
-                foundLuaModule = False
-                for luaPath in self.luaPath:
-                    if relativePath.upper().find(luaPath.upper()) == 0:
-                        foundLuaModule = True
-                        break
-
-                if foundLuaModule:
-                    self.fileList_lua.append(relativePath)
-                else:
-                    self.fileList_com.append(relativePath)
+                self.fileList_com.append(relativePath)
 
     def __bExclude(self, item):
         bexclude = False
@@ -152,8 +131,7 @@ class CocosFileList:
         """
         f = open(fileName,"w")
         self.fileList_com.sort()
-        self.fileList_lua.sort()
-        content ={'common':self.fileList_com,'lua':self.fileList_lua}
+        content ={'common':self.fileList_com}
         json.dump(content,f,sort_keys=True,indent=4)
         f.close()
         return True
